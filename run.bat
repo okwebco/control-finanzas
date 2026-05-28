@@ -21,8 +21,8 @@ call .venv\Scripts\activate
 echo  Instalando dependencias...
 pip install -r requirements.txt -q
 
-echo  Iniciando servidor en http://localhost:8080
+echo  Iniciando servidor en http://localhost:8001
 echo  Presiona Ctrl+C para detener.
 echo.
 
-uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
