@@ -292,6 +292,19 @@ tr.row-warn-30 td:first-child { border-left: 3px solid var(--warn-30); }
 .btn-save.laboral-mode { background: var(--laboral); }
 .form-section-title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px; }
 
+/* Chips de categoría */
+.cat-chips {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px;
+  max-height: 130px; overflow-y: auto; padding: 4px 0;
+}
+.cat-chip {
+  padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--border); background: var(--bg);
+  color: var(--text-muted); transition: all .15s; user-select: none;
+}
+.cat-chip:hover { border-color: var(--personal); color: var(--personal); background: #eff6ff; }
+.cat-chip-sel  { background: var(--personal); color: #fff; border-color: var(--personal); }
+
 /* Nueva categoría inline */
 .cat-nueva { display: flex; gap: 8px; margin-top: 8px; }
 .cat-nueva input { flex: 1; }

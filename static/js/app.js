@@ -446,7 +446,7 @@ const CF = (() => {
   // ----------------------------------------------------------
   // MODAL
   // ----------------------------------------------------------
-  function openModal(id) {
+  async function openModal(id) {
     S.editId = id || null;
     const overlay = document.getElementById('modal-overlay');
     overlay.classList.remove('hidden');
@@ -455,6 +455,8 @@ const CF = (() => {
     if (S.tab === 'cxc' || S.tab === 'cxp') {
       _renderFormCuenta(id);
     } else {
+      // Recargar categorías siempre antes de mostrar el formulario
+      await loadCategorias();
       _renderFormTransaccion(id);
     }
   }
@@ -554,14 +556,19 @@ const CF = (() => {
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Categoría</label>
-        <select id="f-categoria" class="form-control">
-          <option value="">— sin categoría —</option>
-          ${catOpts}
-        </select>
+        <label class="form-label">Categoría <span style="font-weight:400;color:var(--text-muted)">(${S.categorias.length} disponibles)</span></label>
+        <input type="hidden" id="f-categoria" value="${v('categoria_id') || ''}">
+        <div class="cat-chips" id="cat-chips">
+          <div class="cat-chip ${!v('categoria_id') ? 'cat-chip-sel' : ''}"
+               onclick="CF._selCat(this,'')">Sin categoría</div>
+          ${S.categorias.map(c => `
+            <div class="cat-chip ${String(v('categoria_id')) === String(c.id) ? 'cat-chip-sel' : ''}"
+                 onclick="CF._selCat(this,'${c.id}')">${esc(c.nombre)}</div>
+          `).join('')}
+        </div>
         <div class="cat-nueva">
-          <input id="f-cat-nueva" class="form-control" placeholder="+ Crear nueva categoría…">
-          <button class="btn-cat-add" onclick="CF.crearCategoria()">Agregar</button>
+          <input id="f-cat-nueva" class="form-control" placeholder="+ Nueva categoría…">
+          <button class="btn-cat-add" onclick="CF.crearCategoria()">Crear</button>
         </div>
       </div>
       <div class="form-group">
@@ -644,7 +651,7 @@ const CF = (() => {
     const desc   = document.getElementById('f-desc').value.trim();
     const valor  = parseFloat(document.getElementById('f-valor').value);
     const tipo   = document.getElementById('f-tipo').value;
-    const catId  = document.getElementById('f-categoria').value;
+    const catId  = (document.getElementById('f-categoria')?.value || '').trim();
 
     if (!fecha || !desc || isNaN(valor) || valor <= 0) {
       toast('Fecha, descripción y valor son obligatorios', 'err');
@@ -686,6 +693,15 @@ const CF = (() => {
     } catch (e) {
       toast(e.message, 'err');
     }
+  }
+
+  // ----------------------------------------------------------
+  // SELECTOR DE CATEGORÍA (chips)
+  // ----------------------------------------------------------
+  function _selCat(chip, id) {
+    document.querySelectorAll('#cat-chips .cat-chip').forEach(c => c.classList.remove('cat-chip-sel'));
+    chip.classList.add('cat-chip-sel');
+    document.getElementById('f-categoria').value = id;
   }
 
   // ----------------------------------------------------------
@@ -815,7 +831,7 @@ const CF = (() => {
     setPerfil, setTab, setAño, logout, openModal, closeModal,
     saveCuenta, deleteCuenta, saveTransaccion, deleteTransaccion,
     crearCategoria, verificarNotificaciones, exportar,
-    _setFiltro, _limpiarFiltros,
+    _setFiltro, _limpiarFiltros, _selCat,
   };
 
 })();
