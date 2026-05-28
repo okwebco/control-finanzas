@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control Finanzas</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-screen hidden">
+  <div class="login-card">
+    <div class="login-logo">💰</div>
+    <div class="login-brand">Control Finanzas</div>
+    <div class="login-subtitle">Ok Web SAS · Jhon H. Vélez</div>
+    <form id="login-form">
+      <input type="password" id="password-input" placeholder="Contraseña" autocomplete="current-password">
+      <button type="submit" class="btn-primary">Ingresar</button>
+      <div id="login-error" class="login-error hidden">Contraseña incorrecta. Intenta de nuevo.</div>
+    </form>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+
+  <!-- Header -->
+  <header id="app-header">
+    <div class="header-brand">💰 Control Finanzas</div>
+    <div class="header-center">
+      <div class="profile-toggle">
+        <button id="btn-personal" class="profile-btn" onclick="CF.setPerfil('personal')">Personal</button>
+        <button id="btn-laboral"  class="profile-btn" onclick="CF.setPerfil('laboral')">Ok Web S.A.S.</button>
+      </div>
+    </div>
+    <div class="header-right">
+      <select id="year-selector" onchange="CF.setAño(parseInt(this.value))"></select>
+      <button class="btn-icon" onclick="CF.logout()" title="Cerrar sesión">⎋</button>
+    </div>
+  </header>
+
+  <!-- Alertas -->
+  <div id="alerts-banner" class="hidden"></div>
+
+  <!-- Balance -->
+  <div id="balance-row" class="balance-row"></div>
+
+  <!-- Tabs -->
+  <nav class="tab-nav" id="tab-nav">
+    <button class="tab-btn" data-tab="cxc"   onclick="CF.setTab('cxc')">Por cobrar</button>
+    <button class="tab-btn" data-tab="cxp"   onclick="CF.setTab('cxp')">Por pagar</button>
+    <button class="tab-btn" data-tab="libro" onclick="CF.setTab('libro')">Libro contable</button>
+  </nav>
+
+  <!-- Contenido -->
+  <main id="main-content"></main>
+
+</div>
+
+<!-- Modal -->
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modal-title">—</h3>
+      <button class="modal-close" onclick="CF.closeModal()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="hidden"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>

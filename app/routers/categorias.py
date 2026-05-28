@@ -1,0 +1,38 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from typing import List
+from app.database import get_db
+from app.models import Categoria
+from app.schemas import CategoriaCreate, CategoriaResponse
+from app.dependencies import get_current_user
+
+router = APIRouter(prefix="/api/categorias", tags=["categorias"])
+
+
+@router.get("", response_model=List[CategoriaResponse])
+async def listar(db: Session = Depends(get_db), _=Depends(get_current_user)):
+    return db.query(Categoria).order_by(Categoria.nombre).all()
+
+
+@router.post("", response_model=CategoriaResponse)
+async def crear(cat: CategoriaCreate, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    existente = db.query(Categoria).filter(Categoria.nombre.ilike(cat.nombre)).first()
+    if existente:
+        raise HTTPException(status_code=400, detail="La categoría ya existe")
+    nueva = Categoria(nombre=cat.nombre.strip().capitalize(), es_predefinida=False)
+    db.add(nueva)
+    db.commit()
+    db.refresh(nueva)
+    return nueva
+
+
+@router.delete("/{id}")
+async def eliminar(id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    cat = db.query(Categoria).filter(Categoria.id == id).first()
+    if not cat:
+        raise HTTPException(status_code=404, detail="No encontrada")
+    if cat.es_predefinida:
+        raise HTTPException(status_code=400, detail="No se pueden eliminar categorías predefinidas")
+    db.delete(cat)
+    db.commit()
+    return {"ok": True}
