@@ -321,6 +321,9 @@ const CF = (() => {
       : '<span class="td-muted">—</span>';
 
     const catNombre = c.categoria?.nombre || '—';
+    const btnReg = c.tipo === 'cxc'
+      ? `<button class="btn-reg btn-reg-cxc" onclick="CF.registrarMovimiento(${c.id})">✓ Cobrar</button>`
+      : `<button class="btn-reg btn-reg-cxp" onclick="CF.registrarMovimiento(${c.id})">✓ Pagar</button>`;
     return `
       <tr class="${rowCls}">
         <td><strong>${esc(c.concepto)}</strong></td>
@@ -333,6 +336,7 @@ const CF = (() => {
         <td>${urlLink}</td>
         <td>
           <div class="actions">
+            ${btnReg}
             <button class="btn-edit" onclick="CF.openModal(${c.id})">Editar</button>
             <button class="btn-del"  onclick="CF.deleteCuenta(${c.id})">Eliminar</button>
           </div>
@@ -624,6 +628,102 @@ const CF = (() => {
   }
 
   // ----------------------------------------------------------
+  // REGISTRAR PAGO / COBRO → LIBRO CONTABLE
+  // ----------------------------------------------------------
+  async function registrarMovimiento(id) {
+    const cuenta = S.cuentas.find(c => c.id === id);
+    if (!cuenta) return;
+    S.editId = null;
+    const overlay = document.getElementById('modal-overlay');
+    overlay.classList.remove('hidden');
+    overlay.onclick = e => { if (e.target === overlay) closeModal(); };
+    try { await loadCategorias(); } catch (_) {}
+    _renderFormRegistro(cuenta);
+  }
+
+  function _renderFormRegistro(cuenta) {
+    const esCobro  = cuenta.tipo === 'cxc';
+    const tipoTx   = esCobro ? 'ingreso' : 'egreso';
+    const tipoLabel = esCobro ? 'Cobro' : 'Pago';
+    const addClass  = cuenta.perfil === 'laboral' ? 'laboral-mode' : '';
+
+    document.getElementById('modal-title').textContent = `Registrar ${tipoLabel} en libro contable`;
+
+    const catChips = S.categorias.map(c => `
+      <div class="cat-chip ${String(cuenta.categoria_id) === String(c.id) ? 'cat-chip-sel' : ''}"
+           onclick="CF._selCat(this,'${c.id}')">${esc(c.nombre)}</div>
+    `).join('');
+
+    document.getElementById('modal-body').innerHTML = `
+      <div class="reg-info-box reg-${tipoTx}">
+        <span class="badge badge-${tipoTx}">${tipoLabel}</span>
+        <strong>${esc(cuenta.concepto)}</strong>
+        <span class="reg-info-valor">${fmtMoney(cuenta.valor, cuenta.moneda)}</span>
+      </div>
+      <div class="form-section-title">${esc(PERFILES[cuenta.perfil].nombre)}</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Fecha del ${tipoLabel.toLowerCase()} *</label>
+          <input id="f-fecha" type="date" class="form-control" value="${todayISO()}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valor *</label>
+          <input id="f-valor" type="number" step="1" min="0" class="form-control" value="${cuenta.valor}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Categoría <span style="font-weight:400;color:var(--text-muted)">(${S.categorias.length} disponibles)</span></label>
+        <input type="hidden" id="f-categoria" value="${cuenta.categoria_id || ''}">
+        <div class="cat-chips" id="cat-chips">
+          <div class="cat-chip ${!cuenta.categoria_id ? 'cat-chip-sel' : ''}" onclick="CF._selCat(this,'')">Sin categoría</div>
+          ${catChips}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción *</label>
+        <input id="f-desc" class="form-control" placeholder="¿De qué se trata?" value="${esc(cuenta.concepto)}">
+      </div>
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="CF.closeModal()">Cancelar</button>
+        <button class="btn-save ${addClass}" onclick="CF.saveRegistroMovimiento('${cuenta.perfil}','${tipoTx}')">
+          Registrar ${tipoLabel}
+        </button>
+      </div>
+    `;
+  }
+
+  async function saveRegistroMovimiento(perfil, tipoTx) {
+    const fecha = document.getElementById('f-fecha').value;
+    const valor = parseFloat(document.getElementById('f-valor').value);
+    const desc  = document.getElementById('f-desc').value.trim();
+    const catId = (document.getElementById('f-categoria')?.value || '').trim();
+
+    if (!fecha || !desc || isNaN(valor) || valor <= 0) {
+      toast('Fecha, descripción y valor son obligatorios', 'err');
+      return;
+    }
+
+    const payload = {
+      perfil,
+      categoria_id: catId ? parseInt(catId) : null,
+      fecha,
+      descripcion: desc,
+      valor,
+      tipo: tipoTx,
+    };
+
+    try {
+      await api('POST', '/api/transacciones', payload);
+      toast(`${tipoTx === 'ingreso' ? 'Cobro' : 'Pago'} registrado en el libro contable ✓`);
+      closeModal();
+      await loadTransacciones();
+      render();
+    } catch (e) {
+      toast(e.message, 'err');
+    }
+  }
+
+  // ----------------------------------------------------------
   // CRUD CUENTAS
   // ----------------------------------------------------------
   async function saveCuenta() {
@@ -869,6 +969,7 @@ const CF = (() => {
     saveCuenta, deleteCuenta, saveTransaccion, deleteTransaccion,
     crearCategoria, verificarNotificaciones, exportar,
     _setFiltro, _limpiarFiltros, _selCat,
+    registrarMovimiento, saveRegistroMovimiento,
   };
 
 })();

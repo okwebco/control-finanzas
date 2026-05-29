@@ -41,7 +41,6 @@ def verify_token(token: str) -> bool:
 @router.post("/login", response_model=TokenResponse)
 async def login(request: LoginRequest):
     expected = _app_password()
-    print(f"[AUTH] Contraseña esperada: {expected!r}  |  Recibida: {request.password!r}")
     if request.password != expected:
         raise HTTPException(status_code=401, detail="Contraseña incorrecta")
     return TokenResponse(token=create_token())
