@@ -32,11 +32,11 @@ const CF = (() => {
   // UTILIDADES
   // ----------------------------------------------------------
   function fmtCOP(v) {
-    return '$ ' + Math.round(v).toLocaleString('es-CO');
+    return '$ ' + Math.round(v).toLocaleString('es-CO');
   }
   function fmtMoney(v, moneda) {
     return moneda === 'USD'
-      ? 'USD ' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      ? 'USD ' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       : fmtCOP(v);
   }
   function fmtDate(iso) {

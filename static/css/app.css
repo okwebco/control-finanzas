@@ -192,7 +192,7 @@ tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: #f8fafc; }
 tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
 .td-muted { color: var(--text-muted); }
-.td-mono  { font-variant-numeric: tabular-nums; }
+.td-mono  { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .td-right { text-align: right; }
 
 /* Row states */
