@@ -23,39 +23,31 @@ CATEGORIAS_PREDEFINIDAS = [
 scheduler = AsyncIOScheduler()
 
 
+MIGRACIONES = [
+    ("ALTER TABLE cuentas ADD COLUMN categoria_id INTEGER REFERENCES categorias(id)",
+     "columna categoria_id agregada a cuentas"),
+    ("ALTER TABLE cuentas ADD COLUMN registrado BOOLEAN DEFAULT FALSE",
+     "columna registrado agregada a cuentas"),
+    ("ALTER TABLE categorias ADD COLUMN perfil VARCHAR(20) DEFAULT 'ambos'",
+     "columna perfil agregada a categorias"),
+    ("ALTER TABLE categorias ADD COLUMN tipo VARCHAR(10) DEFAULT 'ambas'",
+     "columna tipo agregada a categorias"),
+    ("ALTER TABLE transacciones ADD COLUMN cuenta_origen_id INTEGER REFERENCES cuentas(id)",
+     "columna cuenta_origen_id agregada a transacciones"),
+]
+
+
 def migrate_db():
-    """Migraciones manuales seguras — solo agrega columnas si no existen."""
-    with engine.connect() as conn:
+    """Migraciones manuales seguras — cada una en su propia conexión para evitar
+    que un fallo (columna ya existe) aborte las siguientes en PostgreSQL."""
+    for sql, msg in MIGRACIONES:
         try:
-            conn.execute(text("ALTER TABLE cuentas ADD COLUMN categoria_id INTEGER REFERENCES categorias(id)"))
-            conn.commit()
-            print("[DB] Migración: columna categoria_id agregada a cuentas")
+            with engine.connect() as conn:
+                conn.execute(text(sql))
+                conn.commit()
+                print(f"[DB] Migración: {msg}")
         except Exception:
-            pass  # Ya existe — ignorar
-        try:
-            conn.execute(text("ALTER TABLE cuentas ADD COLUMN registrado BOOLEAN DEFAULT 0"))
-            conn.commit()
-            print("[DB] Migración: columna registrado agregada a cuentas")
-        except Exception:
-            pass  # Ya existe — ignorar
-        try:
-            conn.execute(text("ALTER TABLE categorias ADD COLUMN perfil VARCHAR(20) DEFAULT 'ambos'"))
-            conn.commit()
-            print("[DB] Migración: columna perfil agregada a categorias")
-        except Exception:
-            pass
-        try:
-            conn.execute(text("ALTER TABLE categorias ADD COLUMN tipo VARCHAR(10) DEFAULT 'ambas'"))
-            conn.commit()
-            print("[DB] Migración: columna tipo agregada a categorias")
-        except Exception:
-            pass
-        try:
-            conn.execute(text("ALTER TABLE transacciones ADD COLUMN cuenta_origen_id INTEGER REFERENCES cuentas(id)"))
-            conn.commit()
-            print("[DB] Migración: columna cuenta_origen_id agregada a transacciones")
-        except Exception:
-            pass
+            pass  # Columna ya existe — ignorar
 
 
 def seed_categorias():
