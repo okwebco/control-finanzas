@@ -4,9 +4,30 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-INSTANCE_ID = os.getenv("GREEN_API_INSTANCE_ID")
-API_TOKEN = os.getenv("GREEN_API_TOKEN")
-WHATSAPP_PHONE = os.getenv("WHATSAPP_PHONE")
+INSTANCE_ID    = os.getenv("GREEN_API_INSTANCE_ID", "").strip()
+API_TOKEN      = os.getenv("GREEN_API_TOKEN", "").strip()
+WHATSAPP_PHONE = os.getenv("WHATSAPP_PHONE", "").strip()
+
+MESES = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+]
+
+
+def _fmt_cop(valor: float) -> str:
+    """$1 859 928 COP — miles separados por espacio, sin punto ni coma."""
+    partes = []
+    s = str(int(round(valor)))
+    while len(s) > 3:
+        partes.insert(0, s[-3:])
+        s = s[:-3]
+    partes.insert(0, s)
+    return f"${' '.join(partes)} COP"
+
+
+def _fecha_es(d) -> str:
+    """Mayo 30 de 2026"""
+    return f"{MESES[d.month - 1]} {d.day} de {d.year}"
 
 
 async def send_whatsapp(phone: str, message: str) -> dict:
@@ -31,28 +52,31 @@ async def notificar_vencimiento(cuenta, dias: int):
     if not phone:
         return
 
-    tipo_str = "cobrar" if cuenta.tipo == "cxc" else "pagar"
-    perfil_str = "Personal" if cuenta.perfil == "personal" else "Ok Web S.A.S."
+    # Perfil
+    perfil_str = "😀 Jhon Vélez" if cuenta.perfil == "personal" else "🏢 Ok Web"
 
-    if dias == 1:
-        emoji = "🔴"
-        urgencia = "¡MAÑANA vence!"
-    elif dias == 8:
-        emoji = "🟠"
-        urgencia = f"Vence en {dias} días"
+    # Valor
+    if cuenta.moneda == "COP":
+        valor_fmt = _fmt_cop(cuenta.valor)
     else:
-        emoji = "🟡"
-        urgencia = f"Vence en {dias} días"
+        valor_fmt = f"USD {cuenta.valor:,.2f}"
 
-    valor_fmt = f"$ {cuenta.valor:,.0f}" if cuenta.moneda == "COP" else f"USD {cuenta.valor:,.2f}"
+    # Fecha
+    fecha_fmt = _fecha_es(cuenta.fecha_vencimiento)
+
+    # Urgencia: 🔆 para CxC, ✏️ para CxP
+    icono  = "🔆" if cuenta.tipo == "cxc" else "✏️"
+    tipo   = cuenta.tipo          # 'cxc' o 'cxp'
+    unidad = "día" if dias == 1 else "días"
+    urgencia = f"{icono} {tipo} en {dias} {unidad}"
 
     message = (
-        f"{emoji} *Control Finanzas — Alerta*\n\n"
-        f"📋 Perfil: {perfil_str}\n"
-        f"📌 Concepto: {cuenta.concepto}\n"
-        f"💰 Valor: {cuenta.moneda} {valor_fmt}\n"
-        f"📅 Vencimiento: {cuenta.fecha_vencimiento.strftime('%d/%m/%Y')}\n"
-        f"⚠️ {urgencia} — Cuenta por {tipo_str}"
+        f"📊 *Control finanzas*\n\n"
+        f"{perfil_str}\n"
+        f"📌 {cuenta.concepto}\n"
+        f"💰 {valor_fmt}\n"
+        f"📅 {fecha_fmt}\n"
+        f"{urgencia}"
     )
 
     await send_whatsapp(phone, message)

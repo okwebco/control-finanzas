@@ -18,11 +18,13 @@ def _env():
 
 
 def _secret_key() -> str:
-    return _env().get("SECRET_KEY") or os.getenv("SECRET_KEY", "dev-secret-change-in-production")
+    v = _env().get("SECRET_KEY") or os.getenv("SECRET_KEY", "dev-secret-change-in-production")
+    return v.strip()
 
 
 def _app_password() -> str:
-    return _env().get("APP_PASSWORD") or os.getenv("APP_PASSWORD", "control2024")
+    v = _env().get("APP_PASSWORD") or os.getenv("APP_PASSWORD", "control2024")
+    return v.strip()
 
 
 def create_token() -> str:
