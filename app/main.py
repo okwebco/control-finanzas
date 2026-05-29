@@ -77,11 +77,14 @@ app.include_router(notificaciones.router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
+_NO_CACHE = {"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache"}
+
+
 @app.get("/")
 async def root():
-    return FileResponse("static/index.html")
+    return FileResponse("static/index.html", headers=_NO_CACHE)
 
 
 @app.get("/{full_path:path}")
 async def spa_fallback(full_path: str):
-    return FileResponse("static/index.html")
+    return FileResponse("static/index.html", headers=_NO_CACHE)

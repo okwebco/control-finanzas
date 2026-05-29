@@ -455,8 +455,8 @@ const CF = (() => {
     if (S.tab === 'cxc' || S.tab === 'cxp') {
       _renderFormCuenta(id);
     } else {
-      // Recargar categorías siempre antes de mostrar el formulario
-      await loadCategorias();
+      // Intentar recargar categorías; si falla, usar las que ya están en memoria
+      try { await loadCategorias(); } catch (_) { /* continuar con S.categorias actual */ }
       _renderFormTransaccion(id);
     }
   }
