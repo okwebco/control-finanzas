@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de finanzas personales y empresariales · Ok Web</title>
+  <meta name="description" content="Gestiona tus cuentas por cobrar, por pagar y libro contable en un solo lugar. Desarrollado por Ok Web SAS para Jhon H. Vélez.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --azul:    #1e3a5f;
+      --ok:      #0057a8;
+      --acento:  #2563eb;
+      --verde:   #16a34a;
+      --naranja: #ea580c;
+      --bg:      #f0f4f8;
+      --card:    #ffffff;
+      --text:    #1e293b;
+      --muted:   #64748b;
+      --border:  #e2e8f0;
+      --radius:  12px;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--text); background: var(--bg); font-size: 16px; line-height: 1.6;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, var(--azul) 0%, var(--acento) 100%);
+      color: #fff; padding: 80px 24px 100px; text-align: center;
+    }
+    .hero-tag {
+      display: inline-block; background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.3); border-radius: 24px;
+      padding: 6px 20px; font-size: 13px; font-weight: 500; margin-bottom: 24px;
+      letter-spacing: .04em;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 5vw, 52px); font-weight: 800; line-height: 1.15;
+      max-width: 760px; margin: 0 auto 20px;
+    }
+    .hero p {
+      font-size: clamp(15px, 2.5vw, 20px); opacity: .88;
+      max-width: 560px; margin: 0 auto 40px;
+    }
+    .cta-group { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 16px 36px; border-radius: 50px; font-size: 16px; font-weight: 700;
+      transition: transform .2s, opacity .2s; cursor: pointer; border: none;
+    }
+    .btn-cta:hover { transform: translateY(-2px); opacity: .92; }
+    .btn-primary-cta { background: #fff; color: var(--azul); }
+    .btn-outline-cta { background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.6); }
+    .hero-badge {
+      margin-top: 56px; display: flex; justify-content: center; gap: 32px; flex-wrap: wrap;
+    }
+    .hero-badge span {
+      display: flex; align-items: center; gap: 8px; font-size: 14px; opacity: .85;
+    }
+
+    /* ── WAVE ── */
+    .wave { background: linear-gradient(135deg, var(--azul) 0%, var(--acento) 100%); }
+    .wave svg { display: block; }
+
+    /* ── SECCIÓN ── */
+    section { padding: 72px 24px; }
+    .container { max-width: 1080px; margin: 0 auto; }
+    .section-label {
+      font-size: 12px; font-weight: 700; letter-spacing: .1em; color: var(--acento);
+      text-transform: uppercase; margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(24px, 4vw, 38px); font-weight: 800; color: var(--azul);
+      margin-bottom: 16px; line-height: 1.2;
+    }
+    .section-sub { font-size: 17px; color: var(--muted); max-width: 560px; }
+
+    /* ── TARJETAS ── */
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; margin-top: 48px; }
+    .card {
+      background: var(--card); border-radius: var(--radius); padding: 32px 28px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06); border: 1px solid var(--border);
+      transition: box-shadow .2s, transform .2s;
+    }
+    .card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.1); transform: translateY(-3px); }
+    .card-icon { font-size: 36px; margin-bottom: 18px; }
+    .card h3 { font-size: 18px; font-weight: 700; color: var(--azul); margin-bottom: 10px; }
+    .card p { font-size: 15px; color: var(--muted); line-height: 1.6; }
+
+    /* ── MÓDULOS ── */
+    .modulos { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 48px; }
+    @media (max-width: 640px) { .modulos { grid-template-columns: 1fr; } }
+    .modulo {
+      background: var(--card); border-radius: var(--radius); padding: 28px 24px;
+      border-left: 5px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .modulo.cxc { border-color: #2563eb; }
+    .modulo.cxp { border-color: var(--naranja); }
+    .modulo.libro { border-color: var(--azul); }
+    .modulo-icon { font-size: 28px; margin-bottom: 12px; }
+    .modulo h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .modulo ul { padding-left: 18px; color: var(--muted); font-size: 14px; line-height: 1.8; }
+
+    /* ── LISTA CHECK ── */
+    .check-list { list-style: none; margin-top: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 560px) { .check-list { grid-template-columns: 1fr; } }
+    .check-list li {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 15px; color: var(--text);
+    }
+    .check-list li::before { content: '✓'; color: var(--verde); font-weight: 800; flex-shrink: 0; }
+
+    /* ── PERFIL ── */
+    .perfiles { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 48px; }
+    @media (max-width: 640px) { .perfiles { grid-template-columns: 1fr; } }
+    .perfil-card {
+      background: var(--card); border-radius: var(--radius); padding: 36px 28px;
+      text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.06); border: 1px solid var(--border);
+    }
+    .perfil-card .perfil-icon { font-size: 40px; margin-bottom: 14px; }
+    .perfil-card h3 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+    .perfil-card p { color: var(--muted); font-size: 15px; }
+    .perfil-personal { border-top: 4px solid var(--azul); }
+    .perfil-laboral  { border-top: 4px solid var(--ok); }
+
+    /* ── SEGURIDAD ── */
+    .seg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; margin-top: 40px; }
+    .seg-item {
+      display: flex; gap: 16px; align-items: flex-start;
+      background: var(--card); border-radius: var(--radius); padding: 22px 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .seg-item .icon { font-size: 26px; flex-shrink: 0; }
+    .seg-item h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .seg-item p { font-size: 13px; color: var(--muted); }
+
+    /* ── DARK CTA ── */
+    .dark-cta {
+      background: var(--azul); color: #fff; text-align: center;
+      padding: 80px 24px;
+    }
+    .dark-cta h2 { font-size: clamp(24px,4vw,40px); font-weight: 800; margin-bottom: 16px; }
+    .dark-cta p { font-size: 17px; opacity: .8; max-width: 480px; margin: 0 auto 36px; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #313950; color: #fff; padding: 32px 24px;
+      text-align: center; font-size: 13px;
+    }
+    footer a { color: #93c5fd; }
+    footer a:hover { text-decoration: underline; }
+    .footer-logos { display: flex; justify-content: center; align-items: center; gap: 24px; flex-wrap: wrap; margin-bottom: 16px; }
+    .footer-logos span { font-size: 20px; font-weight: 700; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .hero { padding: 60px 20px 80px; }
+      section { padding: 56px 20px; }
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="wave">
+  <section class="hero">
+    <div class="hero-tag">💰 Ok Web SAS · Jhon H. Vélez</div>
+    <h1>Control de finanzas personales y empresariales</h1>
+    <p>CxC, CxP y libro contable en un solo lugar. Alertas por WhatsApp, exportación Excel y acceso seguro con 2FA.</p>
+    <div class="cta-group">
+      <a href="https://finanzas.jhonvelez.com" target="_blank" class="btn-cta btn-primary-cta">
+        Abrir la aplicación →
+      </a>
+      <a href="mailto:jhonvelez@okweb.co" class="btn-cta btn-outline-cta">
+        Solicitar demo
+      </a>
+    </div>
+    <div class="hero-badge">
+      <span>✓ Doble perfil</span>
+      <span>✓ WhatsApp</span>
+      <span>✓ 2FA</span>
+      <span>✓ Excel</span>
+      <span>✓ PostgreSQL</span>
+    </div>
+  </section>
+  <svg viewBox="0 0 1440 60" preserveAspectRatio="none" height="60">
+    <path fill="#f0f4f8" d="M0,60 C360,0 1080,0 1440,60 L1440,60 L0,60 Z"/>
+  </svg>
+</div>
+
+<!-- MÓDULOS -->
+<section style="background:var(--bg)">
+  <div class="container">
+    <div class="section-label">Tres módulos integrados</div>
+    <h2 class="section-title">Todo tu flujo financiero, organizado</h2>
+    <p class="section-sub">Registra lo que te deben, lo que debes y lleva el libro contable actualizado al instante.</p>
+    <div class="modulos">
+      <div class="modulo cxc">
+        <div class="modulo-icon">📥</div>
+        <h3>Cuentas por cobrar</h3>
+        <ul>
+          <li>Clientes y deudores</li>
+          <li>Fechas de vencimiento</li>
+          <li>Alertas automáticas</li>
+          <li>Marcar como cobrado</li>
+          <li>Filtros y búsqueda</li>
+        </ul>
+      </div>
+      <div class="modulo cxp">
+        <div class="modulo-icon">📤</div>
+        <h3>Cuentas por pagar</h3>
+        <ul>
+          <li>Proveedores y servicios</li>
+          <li>Recurrencia mensual/anual</li>
+          <li>Enlace directo al pago</li>
+          <li>Marcar como pagado</li>
+          <li>COP y USD</li>
+        </ul>
+      </div>
+      <div class="modulo libro">
+        <div class="modulo-icon">📒</div>
+        <h3>Libro contable</h3>
+        <ul>
+          <li>Ingresos y egresos</li>
+          <li>Saldo acumulado</li>
+          <li>Categorías personalizadas</li>
+          <li>Retornar a CxC/CxP</li>
+          <li>Exportar a Excel</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PERFILES -->
+<section style="background:var(--card)">
+  <div class="container">
+    <div class="section-label">Doble perfil independiente</div>
+    <h2 class="section-title">Personal y empresarial en una sola app</h2>
+    <p class="section-sub">Cada perfil tiene sus propias cuentas, categorías y movimientos. Cambias con un clic.</p>
+    <div class="perfiles">
+      <div class="perfil-card perfil-personal">
+        <div class="perfil-icon">👤</div>
+        <h3>Jhon Vélez</h3>
+        <p>Finanzas personales: arriendo, servicios, ingresos propios, inversiones.</p>
+      </div>
+      <div class="perfil-card perfil-laboral">
+        <div class="perfil-icon">🏢</div>
+        <h3>Ok Web</h3>
+        <p>Finanzas empresariales: clientes, nómina, impuestos, gastos operativos.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CARACTERÍSTICAS -->
+<section style="background:var(--bg)">
+  <div class="container">
+    <div class="section-label">Funcionalidades</div>
+    <h2 class="section-title">Diseñado para el trabajo real</h2>
+    <p class="section-sub">Cada detalle pensado para que gestionar el dinero sea rápido y sin fricción.</p>
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon">🔔</div>
+        <h3>Alertas por WhatsApp</h3>
+        <p>Notificaciones automáticas a los 30, 8 y 1 día antes del vencimiento. Directo al celular, sin depender del correo.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📊</div>
+        <h3>Ordenamiento y filtros</h3>
+        <p>Ordena por concepto, fecha, valor o categoría con un clic. Filtra por mes, tipo o estado para ver exactamente lo que necesitas.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🏷️</div>
+        <h3>Categorías propias</h3>
+        <p>Crea categorías por perfil y tipo (CxC/CxP/Ambas). Gestiona desde el libro contable sin salir del flujo.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">⬇️</div>
+        <h3>Exportación Excel</h3>
+        <p>Descarga CxC, CxP o el libro contable completo en formato Excel con un solo clic. Ideal para contabilidad.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">↩️</div>
+        <h3>Retornar movimientos</h3>
+        <p>¿Registraste un pago por error? El botón Retornar lo devuelve a CxP/CxC y elimina la entrada del libro automáticamente.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📅</div>
+        <h3>Filtro por año y mes</h3>
+        <p>Navega entre meses y años para ver el historial completo. El libro contable se actualiza en tiempo real.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SEGURIDAD -->
+<section style="background:var(--card)">
+  <div class="container">
+    <div class="section-label">Seguridad</div>
+    <h2 class="section-title">Acceso protegido con doble factor</h2>
+    <p class="section-sub">Tu información financiera protegida con contraseña + código de Google Authenticator.</p>
+    <div class="seg-grid">
+      <div class="seg-item">
+        <span class="icon">🔒</span>
+        <div>
+          <h4>Contraseña segura</h4>
+          <p>Acceso único con contraseña personalizada.</p>
+        </div>
+      </div>
+      <div class="seg-item">
+        <span class="icon">📱</span>
+        <div>
+          <h4>Google Authenticator</h4>
+          <p>Código TOTP de 6 dígitos que cambia cada 30 s.</p>
+        </div>
+      </div>
+      <div class="seg-item">
+        <span class="icon">🔑</span>
+        <div>
+          <h4>JWT con expiración</h4>
+          <p>Token de sesión con vencimiento automático de 30 días.</p>
+        </div>
+      </div>
+      <div class="seg-item">
+        <span class="icon">☁️</span>
+        <div>
+          <h4>GCP + Neon PostgreSQL</h4>
+          <p>Datos en PostgreSQL serverless. Infraestructura Cloud Run.</p>
+        </div>
+      </div>
+      <div class="seg-item">
+        <span class="icon">🔐</span>
+        <div>
+          <h4>Secret Manager</h4>
+          <p>Credenciales cifradas en GCP Secret Manager, fuera del código.</p>
+        </div>
+      </div>
+      <div class="seg-item">
+        <span class="icon">🚀</span>
+        <div>
+          <h4>CI/CD automático</h4>
+          <p>Cada cambio en GitHub despliega automáticamente a producción.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STACK -->
+<section style="background:var(--bg)">
+  <div class="container">
+    <div class="section-label">Stack técnico</div>
+    <h2 class="section-title">Construido para durar</h2>
+    <p class="section-sub">Tecnología moderna, probada y de bajo costo operativo.</p>
+    <ul class="check-list" style="margin-top:40px">
+      <li>FastAPI (Python 3.12) — API REST</li>
+      <li>PostgreSQL en Neon (serverless)</li>
+      <li>Google Cloud Run — contenedores</li>
+      <li>Vanilla JS + HTML5 — sin frameworks</li>
+      <li>Cloudflare CDN + HTTPS</li>
+      <li>GitHub Actions — CI/CD</li>
+      <li>Green API — notificaciones WhatsApp</li>
+      <li>GCP Secret Manager — credenciales</li>
+      <li>Docker + Artifact Registry</li>
+      <li>pyotp — 2FA TOTP</li>
+      <li>openpyxl — exportación Excel</li>
+      <li>APScheduler — alertas diarias 8 AM</li>
+    </ul>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<div class="dark-cta">
+  <h2>¿Listo para tener el control?</h2>
+  <p>Accede a la aplicación desde cualquier dispositivo con tu contraseña y código 2FA.</p>
+  <a href="https://finanzas.jhonvelez.com" target="_blank" class="btn-cta btn-primary-cta">
+    Ir a finanzas.jhonvelez.com →
+  </a>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logos">
+    <span>💰 Control Finanzas</span>
+    <span>·</span>
+    <span>Ok Web SAS</span>
+  </div>
+  <p>Desarrollado por <a href="https://okweb.co" target="_blank">Ok Web SAS</a> para <a href="https://jhonvelez.com" target="_blank">Jhon H. Vélez</a> · 2026</p>
+  <p style="margin-top:8px;opacity:.5;font-size:12px">
+    <a href="https://finanzas.jhonvelez.com">finanzas.jhonvelez.com</a>
+    · <a href="mailto:jhonvelez@okweb.co">jhonvelez@okweb.co</a>
+  </p>
+</footer>
+
+</body>
+</html>
