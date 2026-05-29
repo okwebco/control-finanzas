@@ -19,7 +19,12 @@ async def crear(cat: CategoriaCreate, db: Session = Depends(get_db), _=Depends(g
     existente = db.query(Categoria).filter(Categoria.nombre.ilike(cat.nombre)).first()
     if existente:
         raise HTTPException(status_code=400, detail="La categoría ya existe")
-    nueva = Categoria(nombre=cat.nombre.strip().capitalize(), es_predefinida=False)
+    nueva = Categoria(
+        nombre=cat.nombre.strip().capitalize(),
+        es_predefinida=False,
+        perfil=cat.perfil or 'ambos',
+        tipo=cat.tipo or 'ambas',
+    )
     db.add(nueva)
     db.commit()
     db.refresh(nueva)
@@ -27,7 +32,7 @@ async def crear(cat: CategoriaCreate, db: Session = Depends(get_db), _=Depends(g
 
 
 @router.put("/{id}", response_model=CategoriaResponse)
-async def renombrar(
+async def actualizar(
     id: int, cat: CategoriaCreate,
     db: Session = Depends(get_db), _=Depends(get_current_user)
 ):
@@ -38,6 +43,8 @@ async def renombrar(
     if existente:
         raise HTTPException(status_code=400, detail="Ya existe una categoría con ese nombre")
     db_c.nombre = cat.nombre.strip().capitalize()
+    db_c.perfil = cat.perfil or 'ambos'
+    db_c.tipo = cat.tipo or 'ambas'
     db.commit()
     db.refresh(db_c)
     return db_c

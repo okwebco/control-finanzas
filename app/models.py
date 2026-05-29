@@ -10,6 +10,10 @@ class Categoria(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(100), unique=True, nullable=False)
     es_predefinida = Column(Boolean, default=False)
+    # personal | laboral | ambos — a qué perfil aplica
+    perfil = Column(String(20), default='ambos')
+    # cxc | cxp | ambas — a qué tipo de cuenta aplica
+    tipo = Column(String(10), default='ambas')
 
     transacciones = relationship("Transaccion", back_populates="categoria")
     cuentas = relationship("Cuenta", back_populates="categoria")

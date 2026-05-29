@@ -320,12 +320,27 @@ tr.libro-totales td {
 .cat-chip-sel  { background: var(--personal); color: #fff; border-color: var(--personal); }
 
 /* Chip en modo gestión */
-.cat-chip-mgr { cursor: pointer; }
+.cat-chip-mgr { cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
 .cat-chip-mgr:hover { border-color: var(--personal); color: var(--personal); background: #eff6ff; }
 .cat-rename-input {
-  width: 110px; padding: 2px 6px; border: 1px solid var(--personal);
+  width: 120px; padding: 2px 6px; border: 1px solid var(--personal);
   border-radius: 4px; font-size: 12px; outline: none;
 }
+
+/* Badges de tipo dentro de chips de gestión */
+.cat-badge-cxc  { font-size: 10px; padding: 1px 5px; border-radius: 8px; background: #dcfce7; color: var(--cxc); font-weight: 600; }
+.cat-badge-cxp  { font-size: 10px; padding: 1px 5px; border-radius: 8px; background: #fee2e2; color: var(--cxp); font-weight: 600; }
+.cat-badge-ambas { font-size: 10px; padding: 1px 5px; border-radius: 8px; background: #f1f5f9; color: var(--text-muted); font-weight: 600; }
+
+/* Fila de filtros del modal Categorías */
+.cat-filter-row { display: flex; gap: 6px; margin-bottom: 12px; }
+.cat-filter-btn {
+  padding: 4px 14px; border-radius: 16px; font-size: 12px; font-weight: 500;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text-muted); cursor: pointer;
+  transition: all .15s;
+}
+.cat-filter-btn:hover { border-color: var(--personal); color: var(--personal); }
+.cat-filter-btn.active { background: var(--personal); color: #fff; border-color: var(--personal); }
 
 /* Nueva categoría inline */
 .cat-nueva { display: flex; gap: 8px; margin-top: 8px; }

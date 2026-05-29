@@ -38,6 +38,18 @@ def migrate_db():
             print("[DB] Migración: columna registrado agregada a cuentas")
         except Exception:
             pass  # Ya existe — ignorar
+        try:
+            conn.execute(text("ALTER TABLE categorias ADD COLUMN perfil VARCHAR(20) DEFAULT 'ambos'"))
+            conn.commit()
+            print("[DB] Migración: columna perfil agregada a categorias")
+        except Exception:
+            pass
+        try:
+            conn.execute(text("ALTER TABLE categorias ADD COLUMN tipo VARCHAR(10) DEFAULT 'ambas'"))
+            conn.commit()
+            print("[DB] Migración: columna tipo agregada a categorias")
+        except Exception:
+            pass
 
 
 def seed_categorias():

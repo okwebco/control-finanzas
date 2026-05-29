@@ -16,6 +16,8 @@ class TokenResponse(BaseModel):
 
 class CategoriaBase(BaseModel):
     nombre: str
+    perfil: str = 'ambos'   # personal | laboral | ambos
+    tipo: str = 'ambas'     # cxc | cxp | ambas
 
 class CategoriaCreate(CategoriaBase):
     pass

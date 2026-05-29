@@ -19,6 +19,7 @@ const CF = (() => {
     alertas:  [],
     editId:   null,
     filtros: { concepto: '', moneda: '', recurrencia: '', tipo_tx: '', cat: '', desc: '' },
+    catTabFiltro: '',   // Filtro tipo en modal Categorías: '' | 'cxc' | 'cxp'
   };
 
   const PERFILES = {
@@ -509,7 +510,12 @@ const CF = (() => {
     const addClass = S.perfil === 'laboral' ? 'laboral-mode' : '';
     const v = f => c ? (c[f] || '') : '';
 
-    const catChipsCuenta = S.categorias.map(cat => `
+    // Filtrar categorías según perfil y tipo del tab activo
+    const catsFiltradas = S.categorias.filter(cat =>
+      (cat.perfil === S.perfil || cat.perfil === 'ambos') &&
+      (cat.tipo === S.tab || cat.tipo === 'ambas')
+    );
+    const catChipsCuenta = catsFiltradas.map(cat => `
       <div class="cat-chip ${String(v('categoria_id')) === String(cat.id) ? 'cat-chip-sel' : ''}"
            onclick="CF._selCat(this,'${cat.id}')">${esc(cat.nombre)}</div>
     `).join('');
@@ -521,12 +527,16 @@ const CF = (() => {
         <input id="f-concepto" class="form-control" placeholder="Nombre del deudor o empresa" value="${esc(v('concepto'))}">
       </div>
       <div class="form-group">
-        <label class="form-label">Categoría <span style="font-weight:400;color:var(--text-muted)">(${S.categorias.length} disponibles)</span></label>
+        <label class="form-label">Categoría <span style="font-weight:400;color:var(--text-muted)">(${catsFiltradas.length} disponibles)</span></label>
         <input type="hidden" id="f-categoria" value="${v('categoria_id') || ''}">
         <div class="cat-chips" id="cat-chips">
           <div class="cat-chip ${!v('categoria_id') ? 'cat-chip-sel' : ''}"
                onclick="CF._selCat(this,'')">Sin categoría</div>
           ${catChipsCuenta}
+        </div>
+        <div class="cat-nueva">
+          <input id="f-cat-nueva" class="form-control" placeholder="+ Nueva categoría…">
+          <button class="btn-cat-add" onclick="CF.crearCategoria()">Crear</button>
         </div>
       </div>
       <div class="form-group">
@@ -658,7 +668,12 @@ const CF = (() => {
 
     document.getElementById('modal-title').textContent = `Registrar ${tipoLabel} en libro contable`;
 
-    const catChips = S.categorias.map(c => `
+    // Filtrar categorías según perfil + tipo de cuenta
+    const catsFiltReg = S.categorias.filter(c =>
+      (c.perfil === cuenta.perfil || c.perfil === 'ambos') &&
+      (c.tipo === cuenta.tipo || c.tipo === 'ambas')
+    );
+    const catChips = catsFiltReg.map(c => `
       <div class="cat-chip ${String(cuenta.categoria_id) === String(c.id) ? 'cat-chip-sel' : ''}"
            onclick="CF._selCat(this,'${c.id}')">${esc(c.nombre)}</div>
     `).join('');
@@ -681,7 +696,7 @@ const CF = (() => {
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Categoría <span style="font-weight:400;color:var(--text-muted)">(${S.categorias.length} disponibles)</span></label>
+        <label class="form-label">Categoría <span style="font-weight:400;color:var(--text-muted)">(${catsFiltReg.length} disponibles)</span></label>
         <input type="hidden" id="f-categoria" value="${cuenta.categoria_id || ''}">
         <div class="cat-chips" id="cat-chips">
           <div class="cat-chip ${!cuenta.categoria_id ? 'cat-chip-sel' : ''}" onclick="CF._selCat(this,'')">Sin categoría</div>
@@ -858,12 +873,18 @@ const CF = (() => {
     const input = document.getElementById('f-cat-nueva');
     const nombre = input?.value.trim();
     if (!nombre) return;
+
+    // Perfil siempre es el activo; tipo depende del contexto
+    const perfil = S.perfil;
+    const tipo = S.tab === 'libro'
+      ? (document.getElementById('f-cat-tipo')?.value || 'ambas')
+      : S.tab;  // 'cxc' o 'cxp'
+
     try {
-      await api('POST', '/api/categorias', { nombre });
+      await api('POST', '/api/categorias', { nombre, perfil, tipo });
       toast(`Categoría "${nombre}" creada`);
       if (input) input.value = '';
       await loadCategorias();
-      // Re-render según contexto del modal activo
       if (S.tab === 'libro') {
         _renderFormCategorias();
       } else {
@@ -916,6 +937,7 @@ const CF = (() => {
   // ----------------------------------------------------------
   async function openCategoriasModal() {
     S.editId = null;
+    S.catTabFiltro = '';
     const overlay = document.getElementById('modal-overlay');
     overlay.classList.remove('hidden');
     overlay.onclick = e => { if (e.target === overlay) closeModal(); };
@@ -923,24 +945,64 @@ const CF = (() => {
     _renderFormCategorias();
   }
 
+  function _buildCatChips() {
+    const cats = S.categorias.filter(c => {
+      if (c.perfil !== S.perfil && c.perfil !== 'ambos') return false;
+      if (S.catTabFiltro && c.tipo !== S.catTabFiltro && c.tipo !== 'ambas') return false;
+      return true;
+    });
+    if (!cats.length) return '<span style="color:var(--text-muted);font-size:13px">Sin categorías para este contexto.</span>';
+
+    const tipoLabel = { cxc: 'CxC', cxp: 'CxP', ambas: '↔' };
+    const tipoCls   = { cxc: 'cat-badge-cxc', cxp: 'cat-badge-cxp', ambas: 'cat-badge-ambas' };
+
+    return cats.map(c => {
+      const nombreEsc  = esc(c.nombre).replace(/'/g, '&#39;');
+      return `
+        <div class="cat-chip cat-chip-mgr" id="cat-mgr-${c.id}"
+             onclick="CF._iniciarRenameCat(${c.id},'${nombreEsc}','${c.tipo}','${c.perfil}')"
+             title="Clic para editar">
+          ${esc(c.nombre)}<span class="${tipoCls[c.tipo] || 'cat-badge-ambas'}">${tipoLabel[c.tipo] || '↔'}</span>
+        </div>`;
+    }).join('');
+  }
+
+  function _setCatTabFiltro(tipo) {
+    S.catTabFiltro = tipo;
+    const area = document.getElementById('cat-chips-mgr');
+    if (area) area.innerHTML = _buildCatChips();
+    document.querySelectorAll('.cat-filter-btn').forEach((b, i) => {
+      const vals = ['', 'cxc', 'cxp'];
+      b.classList.toggle('active', vals[i] === tipo);
+    });
+  }
+
   function _renderFormCategorias() {
     document.getElementById('modal-title').textContent = 'Categorías';
-    const chips = S.categorias.map(c => `
-      <div class="cat-chip cat-chip-mgr" id="cat-mgr-${c.id}"
-           onclick="CF._iniciarRenameCat(${c.id},'${esc(c.nombre).replace(/'/g,'\\\'')}')"
-           title="Clic para renombrar">${esc(c.nombre)}</div>
-    `).join('');
-
+    const perfilLabel = S.perfil === 'laboral' ? 'Ok Web S.A.S.' : 'Personal';
     document.getElementById('modal-body').innerHTML = `
-      <div class="cat-nueva" style="margin-bottom:16px">
-        <input id="f-cat-nueva" class="form-control" placeholder="+ Nombre de la nueva categoría…">
+      <p class="form-label" style="margin-bottom:10px">
+        Perfil activo: <strong>${perfilLabel}</strong> — cada perfil gestiona sus propias categorías.
+      </p>
+      <div class="cat-nueva" style="margin-bottom:14px">
+        <input id="f-cat-nueva" class="form-control" placeholder="Nombre de la nueva categoría…">
+        <select id="f-cat-tipo" class="form-control" style="width:auto;min-width:90px;flex-shrink:0">
+          <option value="ambas">Ambas</option>
+          <option value="cxc">CxC</option>
+          <option value="cxp">CxP</option>
+        </select>
         <button class="btn-cat-add" onclick="CF.crearCategoria()">Crear</button>
       </div>
-      <p class="form-label" style="margin-bottom:10px;color:var(--text-muted)">
-        Toca una categoría para renombrarla:
+      <div class="cat-filter-row">
+        <button class="cat-filter-btn active" onclick="CF._setCatTabFiltro('')">Todas</button>
+        <button class="cat-filter-btn" onclick="CF._setCatTabFiltro('cxc')">CxC</button>
+        <button class="cat-filter-btn" onclick="CF._setCatTabFiltro('cxp')">CxP</button>
+      </div>
+      <p class="form-label" style="margin-bottom:8px;color:var(--text-muted)">
+        Toca una categoría para renombrarla o cambiar su alcance:
       </p>
-      <div class="cat-chips" id="cat-chips-mgr" style="max-height:280px">
-        ${chips || '<span style="color:var(--text-muted);font-size:13px">Sin categorías personalizadas aún.</span>'}
+      <div class="cat-chips" id="cat-chips-mgr" style="max-height:260px">
+        ${_buildCatChips()}
       </div>
       <div class="form-actions" style="margin-top:20px">
         <button class="btn-cancel" onclick="CF.closeModal()">Cerrar</button>
@@ -948,31 +1010,49 @@ const CF = (() => {
     `;
   }
 
-  function _iniciarRenameCat(id, nombre) {
+  function _iniciarRenameCat(id, nombre, tipo, perfil) {
     const chip = document.getElementById(`cat-mgr-${id}`);
     if (!chip) return;
     chip.onclick = null;
     chip.classList.add('cat-chip-sel');
+    chip.style.flexDirection = 'column';
+    chip.style.alignItems = 'flex-start';
+    chip.style.gap = '6px';
     chip.innerHTML = `
-      <input class="cat-rename-input" id="cat-rename-${id}" value="${esc(nombre)}"
+      <input class="cat-rename-input" id="cat-rename-${id}" value="${nombre}"
              onclick="event.stopPropagation()"
              onkeydown="if(event.key==='Enter'){event.preventDefault();CF._guardarRenameCat(${id});}if(event.key==='Escape')CF._renderFormCategorias();">
-      <button style="padding:2px 8px;font-size:11px;background:#fff;border-radius:4px;border:1px solid var(--border)"
-              onclick="event.stopPropagation();CF._guardarRenameCat(${id})">✓</button>
-      <button style="padding:2px 8px;font-size:11px;background:#f1f5f9;border-radius:4px;border:1px solid var(--border)"
-              onclick="event.stopPropagation();CF._renderFormCategorias()">✕</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <select id="cat-edit-tipo-${id}" onclick="event.stopPropagation()"
+                style="font-size:11px;padding:2px 6px;border-radius:4px;border:1px solid var(--border)">
+          <option value="ambas" ${tipo==='ambas'?'selected':''}>Ambas (CxC y CxP)</option>
+          <option value="cxc"   ${tipo==='cxc'?'selected':''}>Solo CxC (cobros)</option>
+          <option value="cxp"   ${tipo==='cxp'?'selected':''}>Solo CxP (pagos)</option>
+        </select>
+        <select id="cat-edit-perfil-${id}" onclick="event.stopPropagation()"
+                style="font-size:11px;padding:2px 6px;border-radius:4px;border:1px solid var(--border)">
+          <option value="ambos"    ${perfil==='ambos'?'selected':''}>Ambos perfiles</option>
+          <option value="personal" ${perfil==='personal'?'selected':''}>Solo Personal</option>
+          <option value="laboral"  ${perfil==='laboral'?'selected':''}>Solo Ok Web</option>
+        </select>
+        <button style="padding:2px 8px;font-size:11px;background:#fff;border-radius:4px;border:1px solid var(--border)"
+                onclick="event.stopPropagation();CF._guardarRenameCat(${id})">✓ Guardar</button>
+        <button style="padding:2px 8px;font-size:11px;background:#f1f5f9;border-radius:4px;border:1px solid var(--border)"
+                onclick="event.stopPropagation();CF._renderFormCategorias()">✕</button>
+      </div>
     `;
     const inp = document.getElementById(`cat-rename-${id}`);
     if (inp) { inp.focus(); inp.select(); }
   }
 
   async function _guardarRenameCat(id) {
-    const inp = document.getElementById(`cat-rename-${id}`);
-    const nombre = inp?.value.trim();
+    const nombre = document.getElementById(`cat-rename-${id}`)?.value.trim();
+    const tipo   = document.getElementById(`cat-edit-tipo-${id}`)?.value   || 'ambas';
+    const perfil = document.getElementById(`cat-edit-perfil-${id}`)?.value || 'ambos';
     if (!nombre) return;
     try {
-      await api('PUT', `/api/categorias/${id}`, { nombre });
-      toast(`Categoría renombrada a "${nombre.charAt(0).toUpperCase() + nombre.slice(1)}"`);
+      await api('PUT', `/api/categorias/${id}`, { nombre, tipo, perfil });
+      toast('Categoría actualizada');
       await loadCategorias();
       _renderFormCategorias();
     } catch (e) {
@@ -1060,7 +1140,7 @@ const CF = (() => {
     _setFiltro, _limpiarFiltros, _selCat,
     registrarMovimiento, saveRegistroMovimiento,
     openCategoriasModal, _renderFormCategorias,
-    _iniciarRenameCat, _guardarRenameCat,
+    _iniciarRenameCat, _guardarRenameCat, _setCatTabFiltro,
   };
 
 })();
