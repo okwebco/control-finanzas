@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
-from app.models import Categoria
+from app.models import Categoria, Cuenta, Transaccion
 from app.schemas import CategoriaCreate, CategoriaResponse
 from app.dependencies import get_current_user
 
@@ -55,6 +55,14 @@ async def eliminar(id: int, db: Session = Depends(get_db), _=Depends(get_current
     cat = db.query(Categoria).filter(Categoria.id == id).first()
     if not cat:
         raise HTTPException(status_code=404, detail="No encontrada")
+    # Verificar que no tenga registros asignados
+    tx_count     = db.query(Transaccion).filter(Transaccion.categoria_id == id).count()
+    cuenta_count = db.query(Cuenta).filter(Cuenta.categoria_id == id).count()
+    if tx_count > 0 or cuenta_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No se puede eliminar: tiene {tx_count + cuenta_count} registro(s) asignado(s). Cambia el nombre en su lugar."
+        )
     db.delete(cat)
     db.commit()
     return {"ok": True}

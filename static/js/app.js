@@ -36,9 +36,12 @@ const CF = (() => {
     return '$ ' + Math.round(v).toLocaleString('es-CO');
   }
   function fmtMoney(v, moneda) {
-    return moneda === 'USD'
-      ? 'USD ' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      : fmtCOP(v);
+    return fmtCOP(v); // mismo formato para COP y USD
+  }
+
+  function togglePw() {
+    const inp = document.getElementById('password-input');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
   }
   function fmtDate(iso) {
     if (!iso) return '—';
@@ -528,9 +531,7 @@ const CF = (() => {
   function _rowTransaccion(t) {
     const catNom = t.categoria?.nombre || 'Sin categoría';
     const esIngreso = t.tipo === 'ingreso';
-    const btnRetornar = t.cuenta_origen_id
-      ? `<button class="btn-ret" onclick="CF.retornarMovimiento(${t.id},${t.cuenta_origen_id})" title="Devuelve a CxC/CxP y elimina del libro">↩ Retornar</button>`
-      : '';
+    const btnRetornar = `<button class="btn-ret" onclick="CF.retornarMovimiento(${t.id},${t.cuenta_origen_id||null})" title="Devuelve a CxC/CxP y elimina del libro">↩ Retornar</button>`;
     return `
       <tr>
         <td>${fmtDate(t.fecha)}</td>
@@ -1252,7 +1253,7 @@ const CF = (() => {
     registrarMovimiento, saveRegistroMovimiento,
     openCategoriasModal, _renderFormCategorias,
     _iniciarRenameCat, _guardarRenameCat, _setCatTabFiltro,
-    _eliminarCat, retornarMovimiento, _toggleSort,
+    _eliminarCat, retornarMovimiento, _toggleSort, togglePw,
   };
 
 })();

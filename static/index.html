@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Control de finanzas personales y empresariales</title>
-  <link rel="stylesheet" href="/static/css/app.css?v=16">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+  <link rel="stylesheet" href="/static/css/app.css?v=17">
 </head>
 <body>
 
@@ -15,7 +16,10 @@
     <div class="login-brand">Control Finanzas</div>
     <div class="login-subtitle">Ok Web SAS · Jhon H. Vélez</div>
     <form id="login-form">
-      <input type="password" id="password-input" placeholder="Contraseña" autocomplete="current-password">
+      <div class="pw-wrap">
+        <input type="password" id="password-input" placeholder="Contraseña" autocomplete="current-password">
+        <button type="button" class="pw-eye" onclick="CF.togglePw()" tabindex="-1">👁</button>
+      </div>
       <input type="text" id="totp-input" placeholder="Código 2FA (Google Authenticator)"
              inputmode="numeric" maxlength="6" autocomplete="one-time-code">
       <button type="submit" class="btn-primary">Ingresar</button>
@@ -39,7 +43,7 @@
     <div class="header-right">
       <select id="year-selector"  onchange="CF.setAño(parseInt(this.value))"></select>
       <select id="month-selector" onchange="CF.setMes(parseInt(this.value))"></select>
-      <button class="btn-icon" onclick="CF.logout()" title="Cerrar sesión">⎋</button>
+      <button class="btn-icon btn-logout" onclick="CF.logout()" title="Cerrar sesión">🔒</button>
     </div>
   </header>
 
@@ -60,7 +64,11 @@
   <main id="main-content"></main>
 
   <!-- Footer -->
-  <footer class="app-footer">Control de finanzas | Crea Ok Web ® | 2026</footer>
+  <footer class="app-footer">
+    <a href="http://okweb.co/jhoveloro/control-finanzas" target="_blank" rel="noopener">
+      Control de finanzas | Crea Ok Web ® | 2026
+    </a>
+  </footer>
 
 </div>
 
@@ -78,6 +86,6 @@
 <!-- Toast -->
 <div id="toast" class="hidden"></div>
 
-<script src="/static/js/app.js?v=16"></script>
+<script src="/static/js/app.js?v=17"></script>
 </body>
 </html>
