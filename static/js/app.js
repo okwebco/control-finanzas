@@ -12,7 +12,8 @@ const CF = (() => {
     token:    localStorage.getItem('cf_token'),
     perfil:   localStorage.getItem('cf_perfil') || 'personal',
     tab:      'cxc',
-    año:      new Date().getFullYear(),
+    año:      Math.max(new Date().getFullYear(), 2026),
+    mes:      0,  // 0 = todos, 1-12 = mes específico
     cuentas:  [],
     transacciones: [],
     categorias: [],
@@ -139,6 +140,11 @@ const CF = (() => {
     loadTransacciones().then(render);
   }
 
+  function setMes(m) {
+    S.mes = m;
+    render();
+  }
+
   function _resetFiltros() {
     S.filtros = { concepto: '', moneda: '', recurrencia: '', tipo_tx: '', cat: '', desc: '' };
   }
@@ -160,15 +166,25 @@ const CF = (() => {
     bp.className = 'profile-btn' + (S.perfil === 'personal' ? ' active-personal' : '');
     bl.className = 'profile-btn' + (S.perfil === 'laboral'  ? ' active-laboral'  : '');
 
-    // Año selector
+    // Año selector — desde 2026
     const sel = document.getElementById('year-selector');
-    const cur = new Date().getFullYear();
+    const cur = Math.max(new Date().getFullYear(), 2026);
     if (!sel.options.length) {
-      for (let y = 2020; y <= cur + 1; y++) {
+      for (let y = 2026; y <= cur + 1; y++) {
         sel.add(new Option(y, y));
       }
     }
     sel.value = S.año;
+
+    // Mes selector
+    const msel = document.getElementById('month-selector');
+    if (!msel.options.length) {
+      const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      msel.add(new Option('Todos', 0));
+      meses.forEach((m, i) => msel.add(new Option(m, i + 1)));
+    }
+    msel.value = S.mes;
   }
 
   function _renderAlertas() {
@@ -254,6 +270,11 @@ const CF = (() => {
         if (f.concepto    && !c.concepto.toLowerCase().includes(f.concepto.toLowerCase())) return false;
         if (f.moneda      && c.moneda !== f.moneda) return false;
         if (f.recurrencia && c.recurrencia !== f.recurrencia) return false;
+        // Filtro por año+mes si hay mes activo
+        if (S.mes > 0) {
+          const d = new Date(c.fecha_vencimiento + 'T00:00:00');
+          if (d.getFullYear() !== S.año || d.getMonth() + 1 !== S.mes) return false;
+        }
         return true;
       });
     if (datos.length === 0) return _emptyState('No hay registros');
@@ -356,7 +377,12 @@ const CF = (() => {
   // RENDER LIBRO CONTABLE
   // ----------------------------------------------------------
   function _buildLibroData() {
-    const datos = S.transacciones.filter(t => {
+    // Base: transacciones del año (ya cargadas por API); adicionalmente filtra por mes si aplica
+    const txBase = S.mes > 0
+      ? S.transacciones.filter(t => new Date(t.fecha + 'T00:00:00').getMonth() + 1 === S.mes)
+      : S.transacciones;
+
+    const datos = txBase.filter(t => {
       const f = S.filtros;
       if (f.tipo_tx && t.tipo !== f.tipo_tx) return false;
       if (f.cat && String(t.categoria_id) !== String(f.cat)) return false;
@@ -364,8 +390,8 @@ const CF = (() => {
       return true;
     });
 
-    const ingresos = S.transacciones.filter(t => t.tipo === 'ingreso').reduce((s, t) => s + t.valor, 0);
-    const egresos  = S.transacciones.filter(t => t.tipo === 'egreso').reduce((s, t) => s + t.valor, 0);
+    const ingresos = txBase.filter(t => t.tipo === 'ingreso').reduce((s, t) => s + t.valor, 0);
+    const egresos  = txBase.filter(t => t.tipo === 'egreso').reduce((s, t) => s + t.valor, 0);
     const saldo    = ingresos - egresos;
 
     let saldoAcum = 0;
@@ -375,7 +401,7 @@ const CF = (() => {
     });
 
     const resCat = {};
-    S.transacciones.forEach(t => {
+    txBase.forEach(t => {
       const nom = t.categoria?.nombre || 'Sin categoría';
       if (!resCat[nom]) resCat[nom] = { ing: 0, egr: 0 };
       if (t.tipo === 'ingreso') resCat[nom].ing += t.valor;
@@ -1107,6 +1133,11 @@ const CF = (() => {
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    // ESC cierra el modal activo
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeModal();
+    });
+
     // Login form
     document.getElementById('login-form').addEventListener('submit', async e => {
       e.preventDefault();
@@ -1136,7 +1167,7 @@ const CF = (() => {
 
   // API pública
   return {
-    setPerfil, setTab, setAño, logout, openModal, closeModal,
+    setPerfil, setTab, setAño, setMes, logout, openModal, closeModal,
     saveCuenta, deleteCuenta, saveTransaccion, deleteTransaccion,
     crearCategoria, verificarNotificaciones, exportar,
     _setFiltro, _limpiarFiltros, _selCat,

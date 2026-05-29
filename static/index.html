@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Control Finanzas</title>
-  <link rel="stylesheet" href="/static/css/app.css?v=11">
+  <link rel="stylesheet" href="/static/css/app.css?v=12">
 </head>
 <body>
 
@@ -35,7 +35,8 @@
       </div>
     </div>
     <div class="header-right">
-      <select id="year-selector" onchange="CF.setAño(parseInt(this.value))"></select>
+      <select id="year-selector"  onchange="CF.setAño(parseInt(this.value))"></select>
+      <select id="month-selector" onchange="CF.setMes(parseInt(this.value))"></select>
       <button class="btn-icon" onclick="CF.logout()" title="Cerrar sesión">⎋</button>
     </div>
   </header>
@@ -72,6 +73,6 @@
 <!-- Toast -->
 <div id="toast" class="hidden"></div>
 
-<script src="/static/js/app.js?v=11"></script>
+<script src="/static/js/app.js?v=12"></script>
 </body>
 </html>

@@ -73,9 +73,9 @@ input, select, textarea { font: inherit; }
 .profile-btn.active-laboral  { background: var(--laboral);  color: #fff; }
 .profile-btn:not(.active-personal):not(.active-laboral):hover { background: var(--border); }
 
-#year-selector {
+#year-selector, #month-selector {
   padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius);
-  background: var(--bg); color: var(--text); outline: none;
+  background: var(--bg); color: var(--text); outline: none; font-size: 13px;
 }
 .btn-icon {
   width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center;
