@@ -12,6 +12,7 @@ class Categoria(Base):
     es_predefinida = Column(Boolean, default=False)
 
     transacciones = relationship("Transaccion", back_populates="categoria")
+    cuentas = relationship("Cuenta", back_populates="categoria")
 
 
 class Cuenta(Base):
@@ -27,6 +28,7 @@ class Cuenta(Base):
     recurrencia = Column(String(20), nullable=True)    # mensual | anual | unica
     valor = Column(Float, nullable=False)
     moneda = Column(String(5), default="COP")          # COP | USD
+    categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=True)
 
     notificado_30 = Column(Boolean, default=False)
     notificado_8 = Column(Boolean, default=False)
@@ -34,6 +36,8 @@ class Cuenta(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    categoria = relationship("Categoria", back_populates="cuentas")
 
 
 class Transaccion(Base):

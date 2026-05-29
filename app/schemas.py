@@ -39,6 +39,7 @@ class CuentaBase(BaseModel):
     recurrencia: Optional[str] = None
     valor: float
     moneda: str = "COP"
+    categoria_id: Optional[int] = None
 
 class CuentaCreate(CuentaBase):
     pass
@@ -52,6 +53,7 @@ class CuentaResponse(CuentaBase):
     notificado_8: bool
     notificado_1: bool
     created_at: datetime
+    categoria: Optional[CategoriaResponse] = None
 
     model_config = {"from_attributes": True}
 

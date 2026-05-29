@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dotenv import load_dotenv
+from sqlalchemy import text
 
 load_dotenv()
 
@@ -20,6 +21,17 @@ CATEGORIAS_PREDEFINIDAS = [
 ]
 
 scheduler = AsyncIOScheduler()
+
+
+def migrate_db():
+    """Migraciones manuales seguras — solo agrega columnas si no existen."""
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE cuentas ADD COLUMN categoria_id INTEGER REFERENCES categorias(id)"))
+            conn.commit()
+            print("[DB] Migración: columna categoria_id agregada a cuentas")
+        except Exception:
+            pass  # Ya existe — ignorar
 
 
 def seed_categorias():
@@ -47,6 +59,7 @@ async def tarea_notificaciones_diaria():
 async def lifespan(app: FastAPI):
     # Arranque
     Base.metadata.create_all(bind=engine)
+    migrate_db()
     seed_categorias()
 
     # Verificar notificaciones al iniciar

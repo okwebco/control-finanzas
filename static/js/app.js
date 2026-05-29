@@ -289,7 +289,7 @@ const CF = (() => {
           <table>
             <thead>
               <tr>
-                <th>Concepto</th><th>Detalle</th><th>Vencimiento</th>
+                <th>Concepto</th><th>Categoría</th><th>Detalle</th><th>Vencimiento</th>
                 <th>Recurrencia</th><th class="td-right">Valor</th>
                 <th>Moneda</th><th>Enlace</th><th>Acciones</th>
               </tr>
@@ -320,9 +320,11 @@ const CF = (() => {
       ? `<a class="link-url" href="${esc(c.url)}" target="_blank" rel="noopener">🔗 ver</a>`
       : '<span class="td-muted">—</span>';
 
+    const catNombre = c.categoria?.nombre || '—';
     return `
       <tr class="${rowCls}">
         <td><strong>${esc(c.concepto)}</strong></td>
+        <td class="td-muted">${esc(catNombre)}</td>
         <td class="td-muted">${esc(c.detalle || '—')}</td>
         <td>${fmtDate(c.fecha_vencimiento)}</td>
         <td>${recBadge}</td>
@@ -452,11 +454,12 @@ const CF = (() => {
     overlay.classList.remove('hidden');
     overlay.onclick = e => { if (e.target === overlay) closeModal(); };
 
+    // Recargar categorías para ambos formularios
+    try { await loadCategorias(); } catch (_) { /* continuar con S.categorias actual */ }
+
     if (S.tab === 'cxc' || S.tab === 'cxp') {
       _renderFormCuenta(id);
     } else {
-      // Intentar recargar categorías; si falla, usar las que ya están en memoria
-      try { await loadCategorias(); } catch (_) { /* continuar con S.categorias actual */ }
       _renderFormTransaccion(id);
     }
   }
@@ -475,11 +478,25 @@ const CF = (() => {
     const addClass = S.perfil === 'laboral' ? 'laboral-mode' : '';
     const v = f => c ? (c[f] || '') : '';
 
+    const catChipsCuenta = S.categorias.map(cat => `
+      <div class="cat-chip ${String(v('categoria_id')) === String(cat.id) ? 'cat-chip-sel' : ''}"
+           onclick="CF._selCat(this,'${cat.id}')">${esc(cat.nombre)}</div>
+    `).join('');
+
     document.getElementById('modal-body').innerHTML = `
       <div class="form-section-title">${esc(PERFILES[S.perfil].nombre)} · ${S.tab.toUpperCase()}</div>
       <div class="form-group">
         <label class="form-label">Concepto / empresa *</label>
         <input id="f-concepto" class="form-control" placeholder="Nombre del deudor o empresa" value="${esc(v('concepto'))}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Categoría <span style="font-weight:400;color:var(--text-muted)">(${S.categorias.length} disponibles)</span></label>
+        <input type="hidden" id="f-categoria" value="${v('categoria_id') || ''}">
+        <div class="cat-chips" id="cat-chips">
+          <div class="cat-chip ${!v('categoria_id') ? 'cat-chip-sel' : ''}"
+               onclick="CF._selCat(this,'')">Sin categoría</div>
+          ${catChipsCuenta}
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">Detalle</label>
@@ -601,6 +618,7 @@ const CF = (() => {
       return;
     }
 
+    const catIdRaw = (document.getElementById('f-categoria')?.value || '').trim();
     const payload = {
       perfil:            S.perfil,
       tipo:              S.tab,
@@ -611,6 +629,7 @@ const CF = (() => {
       valor,
       moneda:            document.getElementById('f-moneda').value,
       url:               document.getElementById('f-url').value.trim() || null,
+      categoria_id:      catIdRaw ? parseInt(catIdRaw) : null,
     };
 
     try {
