@@ -244,21 +244,40 @@ const CF = (() => {
   // ----------------------------------------------------------
   // RENDER CUENTAS (CxC / CxP)
   // ----------------------------------------------------------
-  function _renderCuentas() {
+  function _buildCuentasData() {
     const tipo = S.tab;
-    const titulo = tipo === 'cxc' ? 'Cuentas por cobrar' : 'Cuentas por pagar';
-    const perfilNombre = PERFILES[S.perfil].nombre;
-
     const datos = S.cuentas
       .filter(c => c.tipo === tipo)
       .filter(c => {
         const f = S.filtros;
-        if (f.concepto   && !c.concepto.toLowerCase().includes(f.concepto.toLowerCase())) return false;
-        if (f.moneda     && c.moneda !== f.moneda) return false;
+        if (f.concepto    && !c.concepto.toLowerCase().includes(f.concepto.toLowerCase())) return false;
+        if (f.moneda      && c.moneda !== f.moneda) return false;
         if (f.recurrencia && c.recurrencia !== f.recurrencia) return false;
         return true;
       });
+    if (datos.length === 0) return _emptyState('No hay registros');
+    return `
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Concepto</th><th>Categoría</th><th>Detalle</th><th>Vencimiento</th>
+              <th>Recurrencia</th><th class="td-right">Valor</th>
+              <th>Moneda</th><th>Enlace</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${datos.map(c => _rowCuenta(c)).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
 
+  function _renderCuentas() {
+    const tipo = S.tab;
+    const titulo = tipo === 'cxc' ? 'Cuentas por cobrar' : 'Cuentas por pagar';
+    const perfilNombre = PERFILES[S.perfil].nombre;
     const addClass = S.perfil === 'laboral' ? 'laboral-mode' : '';
 
     document.getElementById('main-content').innerHTML = `
@@ -269,8 +288,8 @@ const CF = (() => {
         <button class="btn-sm btn-add ${addClass}" onclick="CF.openModal()">+ Agregar</button>
       </div>
       <div class="filters-row">
-        <input class="filter-input" placeholder="Buscar concepto…" value="${esc(S.filtros.concepto)}"
-          oninput="CF._setFiltro('concepto', this.value)">
+        <input id="filter-concepto" class="filter-input" placeholder="Buscar concepto…"
+          value="${esc(S.filtros.concepto)}" oninput="CF._setFiltro('concepto', this.value)">
         <select class="filter-select" onchange="CF._setFiltro('moneda', this.value)">
           <option value="">Moneda: todas</option>
           <option value="COP" ${S.filtros.moneda==='COP'?'selected':''}>COP</option>
@@ -284,22 +303,7 @@ const CF = (() => {
         </select>
         <button class="btn-clear-filters" onclick="CF._limpiarFiltros()">✕ Limpiar</button>
       </div>
-      ${datos.length === 0 ? _emptyState('No hay registros') : `
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Concepto</th><th>Categoría</th><th>Detalle</th><th>Vencimiento</th>
-                <th>Recurrencia</th><th class="td-right">Valor</th>
-                <th>Moneda</th><th>Enlace</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${datos.map(c => _rowCuenta(c)).join('')}
-            </tbody>
-          </table>
-        </div>
-      `}
+      <div id="data-area">${_buildCuentasData()}</div>
     `;
   }
 
@@ -350,7 +354,7 @@ const CF = (() => {
   // ----------------------------------------------------------
   // RENDER LIBRO CONTABLE
   // ----------------------------------------------------------
-  function _renderLibro() {
+  function _buildLibroData() {
     const datos = S.transacciones.filter(t => {
       const f = S.filtros;
       if (f.tipo_tx && t.tipo !== f.tipo_tx) return false;
@@ -359,24 +363,16 @@ const CF = (() => {
       return true;
     });
 
-    const addClass = S.perfil === 'laboral' ? 'laboral-mode' : '';
-    const catOpts = S.categorias.map(c =>
-      `<option value="${c.id}" ${S.filtros.cat===String(c.id)?'selected':''}>${esc(c.nombre)}</option>`
-    ).join('');
-
-    // Totales del año (todas las transacciones del perfil+año, sin filtro)
     const ingresos = S.transacciones.filter(t => t.tipo === 'ingreso').reduce((s, t) => s + t.valor, 0);
     const egresos  = S.transacciones.filter(t => t.tipo === 'egreso').reduce((s, t) => s + t.valor, 0);
     const saldo    = ingresos - egresos;
 
-    // Saldo acumulado (sobre datos filtrados, fila a fila)
     let saldoAcum = 0;
     const datosConSaldo = datos.map(t => {
       saldoAcum += t.tipo === 'ingreso' ? t.valor : -t.valor;
       return { ...t, saldoAcum };
     });
 
-    // Resumen por categoría
     const resCat = {};
     S.transacciones.forEach(t => {
       const nom = t.categoria?.nombre || 'Sin categoría';
@@ -385,26 +381,7 @@ const CF = (() => {
       else resCat[nom].egr += t.valor;
     });
 
-    document.getElementById('main-content').innerHTML = `
-      <div class="toolbar">
-        <div class="toolbar-title">Libro contable ${S.año} · ${esc(PERFILES[S.perfil].nombre)}</div>
-        <button class="btn-sm btn-export" onclick="CF.exportar('libro')">⬇ Excel</button>
-        <button class="btn-sm btn-add ${addClass}" onclick="CF.openModal()">+ Agregar</button>
-      </div>
-      <div class="filters-row">
-        <input class="filter-input" placeholder="Buscar descripción…" value="${esc(S.filtros.desc)}"
-          oninput="CF._setFiltro('desc', this.value)">
-        <select class="filter-select" onchange="CF._setFiltro('tipo_tx', this.value)">
-          <option value="">Tipo: todos</option>
-          <option value="ingreso" ${S.filtros.tipo_tx==='ingreso'?'selected':''}>Ingreso</option>
-          <option value="egreso"  ${S.filtros.tipo_tx==='egreso'?'selected':''}>Egreso</option>
-        </select>
-        <select class="filter-select" onchange="CF._setFiltro('cat', this.value)">
-          <option value="">Categoría: todas</option>
-          ${catOpts}
-        </select>
-        <button class="btn-clear-filters" onclick="CF._limpiarFiltros()">✕ Limpiar</button>
-      </div>
+    return `
       <div class="table-wrap">
         <table>
           <thead>
@@ -418,7 +395,7 @@ const CF = (() => {
           </thead>
           <tbody>
             ${datos.length === 0
-              ? `<tr><td colspan="7" class="empty-cell">📭 Sin transacciones — usa "+ Agregar" para registrar el primer movimiento.</td></tr>`
+              ? `<tr><td colspan="7" class="empty-cell">📭 Sin movimientos — registra cobros y pagos desde CxC / CxP.</td></tr>`
               : datosConSaldo.map(t => _rowTransaccion(t)).join('')
             }
           </tbody>
@@ -445,6 +422,36 @@ const CF = (() => {
           `).join('')}
         </div>
       </div>
+    `;
+  }
+
+  function _renderLibro() {
+    const addClass = S.perfil === 'laboral' ? 'laboral-mode' : '';
+    const catOpts = S.categorias.map(c =>
+      `<option value="${c.id}" ${S.filtros.cat===String(c.id)?'selected':''}>${esc(c.nombre)}</option>`
+    ).join('');
+
+    document.getElementById('main-content').innerHTML = `
+      <div class="toolbar">
+        <div class="toolbar-title">Libro contable ${S.año} · ${esc(PERFILES[S.perfil].nombre)}</div>
+        <button class="btn-sm btn-export" onclick="CF.exportar('libro')">⬇ Excel</button>
+        <button class="btn-sm btn-add ${addClass}" onclick="CF.openCategoriasModal()">Categorías</button>
+      </div>
+      <div class="filters-row">
+        <input id="filter-desc" class="filter-input" placeholder="Buscar descripción…"
+          value="${esc(S.filtros.desc)}" oninput="CF._setFiltro('desc', this.value)">
+        <select class="filter-select" onchange="CF._setFiltro('tipo_tx', this.value)">
+          <option value="">Tipo: todos</option>
+          <option value="ingreso" ${S.filtros.tipo_tx==='ingreso'?'selected':''}>Ingreso</option>
+          <option value="egreso"  ${S.filtros.tipo_tx==='egreso'?'selected':''}>Egreso</option>
+        </select>
+        <select class="filter-select" onchange="CF._setFiltro('cat', this.value)">
+          <option value="">Categoría: todas</option>
+          ${catOpts}
+        </select>
+        <button class="btn-clear-filters" onclick="CF._limpiarFiltros()">✕ Limpiar</button>
+      </div>
+      <div id="data-area">${_buildLibroData()}</div>
     `;
   }
 
@@ -849,15 +856,19 @@ const CF = (() => {
   // ----------------------------------------------------------
   async function crearCategoria() {
     const input = document.getElementById('f-cat-nueva');
-    const nombre = input.value.trim();
+    const nombre = input?.value.trim();
     if (!nombre) return;
     try {
       await api('POST', '/api/categorias', { nombre });
       toast(`Categoría "${nombre}" creada`);
-      input.value = '';
+      if (input) input.value = '';
       await loadCategorias();
-      // Re-render form preservando datos
-      _renderFormTransaccion(S.editId);
+      // Re-render según contexto del modal activo
+      if (S.tab === 'libro') {
+        _renderFormCategorias();
+      } else {
+        _renderFormCuenta(S.editId);
+      }
     } catch (e) {
       toast(e.message, 'err');
     }
@@ -901,11 +912,86 @@ const CF = (() => {
   }
 
   // ----------------------------------------------------------
+  // MODAL CATEGORÍAS (desde Libro contable)
+  // ----------------------------------------------------------
+  async function openCategoriasModal() {
+    S.editId = null;
+    const overlay = document.getElementById('modal-overlay');
+    overlay.classList.remove('hidden');
+    overlay.onclick = e => { if (e.target === overlay) closeModal(); };
+    try { await loadCategorias(); } catch (_) {}
+    _renderFormCategorias();
+  }
+
+  function _renderFormCategorias() {
+    document.getElementById('modal-title').textContent = 'Categorías';
+    const chips = S.categorias.map(c => `
+      <div class="cat-chip cat-chip-mgr" id="cat-mgr-${c.id}"
+           onclick="CF._iniciarRenameCat(${c.id},'${esc(c.nombre).replace(/'/g,'\\\'')}')"
+           title="Clic para renombrar">${esc(c.nombre)}</div>
+    `).join('');
+
+    document.getElementById('modal-body').innerHTML = `
+      <div class="cat-nueva" style="margin-bottom:16px">
+        <input id="f-cat-nueva" class="form-control" placeholder="+ Nombre de la nueva categoría…">
+        <button class="btn-cat-add" onclick="CF.crearCategoria()">Crear</button>
+      </div>
+      <p class="form-label" style="margin-bottom:10px;color:var(--text-muted)">
+        Toca una categoría para renombrarla:
+      </p>
+      <div class="cat-chips" id="cat-chips-mgr" style="max-height:280px">
+        ${chips || '<span style="color:var(--text-muted);font-size:13px">Sin categorías personalizadas aún.</span>'}
+      </div>
+      <div class="form-actions" style="margin-top:20px">
+        <button class="btn-cancel" onclick="CF.closeModal()">Cerrar</button>
+      </div>
+    `;
+  }
+
+  function _iniciarRenameCat(id, nombre) {
+    const chip = document.getElementById(`cat-mgr-${id}`);
+    if (!chip) return;
+    chip.onclick = null;
+    chip.classList.add('cat-chip-sel');
+    chip.innerHTML = `
+      <input class="cat-rename-input" id="cat-rename-${id}" value="${esc(nombre)}"
+             onclick="event.stopPropagation()"
+             onkeydown="if(event.key==='Enter'){event.preventDefault();CF._guardarRenameCat(${id});}if(event.key==='Escape')CF._renderFormCategorias();">
+      <button style="padding:2px 8px;font-size:11px;background:#fff;border-radius:4px;border:1px solid var(--border)"
+              onclick="event.stopPropagation();CF._guardarRenameCat(${id})">✓</button>
+      <button style="padding:2px 8px;font-size:11px;background:#f1f5f9;border-radius:4px;border:1px solid var(--border)"
+              onclick="event.stopPropagation();CF._renderFormCategorias()">✕</button>
+    `;
+    const inp = document.getElementById(`cat-rename-${id}`);
+    if (inp) { inp.focus(); inp.select(); }
+  }
+
+  async function _guardarRenameCat(id) {
+    const inp = document.getElementById(`cat-rename-${id}`);
+    const nombre = inp?.value.trim();
+    if (!nombre) return;
+    try {
+      await api('PUT', `/api/categorias/${id}`, { nombre });
+      toast(`Categoría renombrada a "${nombre.charAt(0).toUpperCase() + nombre.slice(1)}"`);
+      await loadCategorias();
+      _renderFormCategorias();
+    } catch (e) {
+      toast(e.message, 'err');
+    }
+  }
+
+  // ----------------------------------------------------------
   // FILTROS
   // ----------------------------------------------------------
   function _setFiltro(key, val) {
     S.filtros[key] = val;
-    _renderContent();
+    // Solo actualizar la zona de datos — preserva el foco del input de búsqueda
+    const dataArea = document.getElementById('data-area');
+    if (dataArea) {
+      dataArea.innerHTML = S.tab === 'libro' ? _buildLibroData() : _buildCuentasData();
+    } else {
+      _renderContent();
+    }
   }
 
   function _limpiarFiltros() {
@@ -973,6 +1059,8 @@ const CF = (() => {
     crearCategoria, verificarNotificaciones, exportar,
     _setFiltro, _limpiarFiltros, _selCat,
     registrarMovimiento, saveRegistroMovimiento,
+    openCategoriasModal, _renderFormCategorias,
+    _iniciarRenameCat, _guardarRenameCat,
   };
 
 })();

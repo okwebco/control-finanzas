@@ -26,6 +26,23 @@ async def crear(cat: CategoriaCreate, db: Session = Depends(get_db), _=Depends(g
     return nueva
 
 
+@router.put("/{id}", response_model=CategoriaResponse)
+async def renombrar(
+    id: int, cat: CategoriaCreate,
+    db: Session = Depends(get_db), _=Depends(get_current_user)
+):
+    db_c = db.query(Categoria).filter(Categoria.id == id).first()
+    if not db_c:
+        raise HTTPException(status_code=404, detail="No encontrada")
+    existente = db.query(Categoria).filter(Categoria.nombre.ilike(cat.nombre), Categoria.id != id).first()
+    if existente:
+        raise HTTPException(status_code=400, detail="Ya existe una categoría con ese nombre")
+    db_c.nombre = cat.nombre.strip().capitalize()
+    db.commit()
+    db.refresh(db_c)
+    return db_c
+
+
 @router.delete("/{id}")
 async def eliminar(id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
     cat = db.query(Categoria).filter(Categoria.id == id).first()
