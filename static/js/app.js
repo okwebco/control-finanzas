@@ -394,33 +394,34 @@ const CF = (() => {
         </select>
         <button class="btn-clear-filters" onclick="CF._limpiarFiltros()">✕ Limpiar</button>
       </div>
-      ${datos.length === 0 ? _emptyState('No hay transacciones. Usa "+ Agregar" para registrar tu primer ingreso o egreso.') : `
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th><th>Categoría</th><th>Descripción</th>
-                <th class="td-right col-ingreso">Ingreso</th>
-                <th class="td-right col-egreso">Egreso</th>
-                <th class="td-right">Saldo</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${datosConSaldo.map(t => _rowTransaccion(t)).join('')}
-            </tbody>
-            <tfoot>
-              <tr class="libro-totales">
-                <td colspan="3"><strong>Totales ${S.año}</strong></td>
-                <td class="td-right td-mono col-ingreso"><strong>${fmtCOP(ingresos)}</strong></td>
-                <td class="td-right td-mono col-egreso"><strong>${fmtCOP(egresos)}</strong></td>
-                <td class="td-right td-mono ${saldo >= 0 ? 'saldo-pos' : 'saldo-neg'}"><strong>${fmtCOP(saldo)}</strong></td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      `}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th><th>Categoría</th><th>Descripción</th>
+              <th class="td-right col-ingreso-h">Ingreso</th>
+              <th class="td-right col-egreso-h">Egreso</th>
+              <th class="td-right">Saldo</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${datos.length === 0
+              ? `<tr><td colspan="7" class="empty-cell">📭 Sin transacciones — usa "+ Agregar" para registrar el primer movimiento.</td></tr>`
+              : datosConSaldo.map(t => _rowTransaccion(t)).join('')
+            }
+          </tbody>
+          <tfoot>
+            <tr class="libro-totales">
+              <td colspan="3"><strong>Totales ${S.año}</strong></td>
+              <td class="td-right td-mono col-ingreso"><strong>${ingresos ? fmtCOP(ingresos) : '—'}</strong></td>
+              <td class="td-right td-mono col-egreso"><strong>${egresos  ? fmtCOP(egresos)  : '—'}</strong></td>
+              <td class="td-right td-mono ${saldo >= 0 ? 'saldo-pos' : 'saldo-neg'}"><strong>${fmtCOP(saldo)}</strong></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
       <div class="resumen-section">
         <div class="resumen-title">Subtotales por categoría — ${S.año}</div>
         <div class="resumen-grid">
