@@ -1,0 +1,60 @@
+name: Deploy → Cloud Run
+
+on:
+  push:
+    branches: [main]
+
+env:
+  PROJECT_ID: control-finanzas
+  REGION:     us-central1
+  SERVICE:    control-finanzas
+  AR_REPO:    control-finanzas          # Artifact Registry repo
+  REGISTRY:   us-central1-docker.pkg.dev
+  BUCKET:     finanzas-jhonvelez-db     # GCS bucket para SQLite persistente
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Autenticar en Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configurar gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configurar Docker para Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
+
+      - name: Build y push imagen
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/app:${{ github.sha }}"
+          docker build -t "$IMAGE" -t "${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/app:latest" .
+          docker push "$IMAGE"
+          docker push "${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/app:latest"
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+
+      - name: Desplegar en Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE }} \
+            --image="$IMAGE" \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --min-instances=0 \
+            --max-instances=1 \
+            --memory=512Mi \
+            --cpu=1 \
+            --timeout=60s \
+            --set-env-vars="DATABASE_URL=sqlite:////data/control_finanzas.db" \
+            --set-secrets="APP_PASSWORD=cf-app-password:latest,SECRET_KEY=cf-secret-key:latest,GREEN_API_INSTANCE_ID=cf-green-api-instance:latest,GREEN_API_TOKEN=cf-green-api-token:latest,WHATSAPP_PHONE=cf-whatsapp-phone:latest" \
+            --add-volume="name=db-vol,type=cloud-storage,bucket=${{ env.BUCKET }}" \
+            --add-volume-mount="volume=db-vol,mount-path=/data" \
+            --project=${{ env.PROJECT_ID }}
