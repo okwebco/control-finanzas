@@ -8,9 +8,8 @@ env:
   PROJECT_ID: control-finanzas-ow
   REGION:     us-central1
   SERVICE:    control-finanzas
-  AR_REPO:    control-finanzas          # Artifact Registry repo
+  AR_REPO:    control-finanzas
   REGISTRY:   us-central1-docker.pkg.dev
-  BUCKET:     finanzas-jhonvelez-db     # GCS bucket para SQLite persistente
 
 jobs:
   deploy:
@@ -53,8 +52,5 @@ jobs:
             --memory=512Mi \
             --cpu=1 \
             --timeout=60s \
-            --set-env-vars="DATABASE_URL=sqlite:////data/control_finanzas.db" \
-            --set-secrets="APP_PASSWORD=cf-app-password:latest,SECRET_KEY=cf-secret-key:latest,GREEN_API_INSTANCE_ID=cf-green-api-instance:latest,GREEN_API_TOKEN=cf-green-api-token:latest,WHATSAPP_PHONE=cf-whatsapp-phone:latest" \
-            --add-volume="name=db-vol,type=cloud-storage,bucket=${{ env.BUCKET }}" \
-            --add-volume-mount="volume=db-vol,mount-path=/data" \
+            --set-secrets="DATABASE_URL=cf-database-url:latest,APP_PASSWORD=cf-app-password:latest,SECRET_KEY=cf-secret-key:latest,GREEN_API_INSTANCE_ID=cf-green-api-instance:latest,GREEN_API_TOKEN=cf-green-api-token:latest,WHATSAPP_PHONE=cf-whatsapp-phone:latest" \
             --project=${{ env.PROJECT_ID }}
