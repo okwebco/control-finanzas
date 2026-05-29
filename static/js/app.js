@@ -510,11 +510,13 @@ const CF = (() => {
     const addClass = S.perfil === 'laboral' ? 'laboral-mode' : '';
     const v = f => c ? (c[f] || '') : '';
 
-    // Filtrar categorías según perfil y tipo del tab activo
-    const catsFiltradas = S.categorias.filter(cat =>
-      (cat.perfil === S.perfil || cat.perfil === 'ambos') &&
-      (cat.tipo === S.tab || cat.tipo === 'ambas')
-    );
+    // Solo mostrar categorías asignadas: excluir predefinidas no configuradas (ambos+ambas = default intacto)
+    const catsFiltradas = S.categorias.filter(cat => {
+      if (cat.perfil !== S.perfil && cat.perfil !== 'ambos') return false;
+      if (cat.tipo !== S.tab && cat.tipo !== 'ambas') return false;
+      if (cat.es_predefinida && cat.perfil === 'ambos' && cat.tipo === 'ambas') return false;
+      return true;
+    });
     const catChipsCuenta = catsFiltradas.map(cat => `
       <div class="cat-chip ${String(v('categoria_id')) === String(cat.id) ? 'cat-chip-sel' : ''}"
            onclick="CF._selCat(this,'${cat.id}')">${esc(cat.nombre)}</div>
@@ -527,16 +529,14 @@ const CF = (() => {
         <input id="f-concepto" class="form-control" placeholder="Nombre del deudor o empresa" value="${esc(v('concepto'))}">
       </div>
       <div class="form-group">
-        <label class="form-label">Categoría <span style="font-weight:400;color:var(--text-muted)">(${catsFiltradas.length} disponibles)</span></label>
+        <label class="form-label">Categoría
+          <span style="font-weight:400;color:var(--text-muted)">(${catsFiltradas.length} — gestiona en <em>Libro &gt; Categorías</em>)</span>
+        </label>
         <input type="hidden" id="f-categoria" value="${v('categoria_id') || ''}">
         <div class="cat-chips" id="cat-chips">
           <div class="cat-chip ${!v('categoria_id') ? 'cat-chip-sel' : ''}"
                onclick="CF._selCat(this,'')">Sin categoría</div>
-          ${catChipsCuenta}
-        </div>
-        <div class="cat-nueva">
-          <input id="f-cat-nueva" class="form-control" placeholder="+ Nueva categoría…">
-          <button class="btn-cat-add" onclick="CF.crearCategoria()">Crear</button>
+          ${catChipsCuenta || '<span style="color:var(--text-muted);font-size:12px;padding:4px 0">Sin categorías asignadas — crea y asigna desde Libro › Categorías</span>'}
         </div>
       </div>
       <div class="form-group">
@@ -668,11 +668,13 @@ const CF = (() => {
 
     document.getElementById('modal-title').textContent = `Registrar ${tipoLabel} en libro contable`;
 
-    // Filtrar categorías según perfil + tipo de cuenta
-    const catsFiltReg = S.categorias.filter(c =>
-      (c.perfil === cuenta.perfil || c.perfil === 'ambos') &&
-      (c.tipo === cuenta.tipo || c.tipo === 'ambas')
-    );
+    // Solo categorías asignadas al perfil+tipo de la cuenta (excluir predefinidas sin configurar)
+    const catsFiltReg = S.categorias.filter(c => {
+      if (c.perfil !== cuenta.perfil && c.perfil !== 'ambos') return false;
+      if (c.tipo !== cuenta.tipo && c.tipo !== 'ambas') return false;
+      if (c.es_predefinida && c.perfil === 'ambos' && c.tipo === 'ambas') return false;
+      return true;
+    });
     const catChips = catsFiltReg.map(c => `
       <div class="cat-chip ${String(cuenta.categoria_id) === String(c.id) ? 'cat-chip-sel' : ''}"
            onclick="CF._selCat(this,'${c.id}')">${esc(c.nombre)}</div>
