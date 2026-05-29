@@ -52,5 +52,5 @@ jobs:
             --memory=512Mi \
             --cpu=1 \
             --timeout=60s \
-            --set-secrets="DATABASE_URL=cf-database-url:latest,APP_PASSWORD=cf-app-password:latest,SECRET_KEY=cf-secret-key:latest,GREEN_API_INSTANCE_ID=cf-green-api-instance:latest,GREEN_API_TOKEN=cf-green-api-token:latest,WHATSAPP_PHONE=cf-whatsapp-phone:latest" \
+            --set-secrets="DATABASE_URL=cf-database-url:latest,APP_PASSWORD=cf-app-password:latest,SECRET_KEY=cf-secret-key:latest,TOTP_SECRET=cf-totp-secret:latest,GREEN_API_INSTANCE_ID=cf-green-api-instance:latest,GREEN_API_TOKEN=cf-green-api-token:latest,WHATSAPP_PHONE=cf-whatsapp-phone:latest" \
             --project=${{ env.PROJECT_ID }}

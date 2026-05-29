@@ -21,6 +21,7 @@ const CF = (() => {
     editId:   null,
     filtros: { concepto: '', moneda: '', recurrencia: '', tipo_tx: '', cat: '', desc: '' },
     catTabFiltro: '',   // Filtro tipo en modal Categorías: '' | 'cxc' | 'cxp'
+    sort: { col: 'fecha_vencimiento', dir: 'asc' },  // Ordenamiento tabla CxC/CxP
   };
 
   const PERFILES = {
@@ -147,6 +148,17 @@ const CF = (() => {
 
   function _resetFiltros() {
     S.filtros = { concepto: '', moneda: '', recurrencia: '', tipo_tx: '', cat: '', desc: '' };
+  }
+
+  function _toggleSort(col) {
+    if (S.sort.col === col) {
+      S.sort.dir = S.sort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      S.sort.col = col;
+      S.sort.dir = 'asc';
+    }
+    const dataArea = document.getElementById('data-area');
+    if (dataArea) dataArea.innerHTML = _buildCuentasData();
   }
 
   // ----------------------------------------------------------
@@ -277,14 +289,39 @@ const CF = (() => {
         }
         return true;
       });
+    // Ordenamiento
+    const { col, dir } = S.sort;
+    datos.sort((a, b) => {
+      let va, vb;
+      if (col === 'concepto')          { va = a.concepto.toLowerCase(); vb = b.concepto.toLowerCase(); }
+      else if (col === 'categoria')    { va = (a.categoria?.nombre || '').toLowerCase(); vb = (b.categoria?.nombre || '').toLowerCase(); }
+      else if (col === 'fecha_vencimiento') { va = a.fecha_vencimiento; vb = b.fecha_vencimiento; }
+      else if (col === 'recurrencia')  { va = a.recurrencia || ''; vb = b.recurrencia || ''; }
+      else if (col === 'valor')        { va = a.valor; vb = b.valor; }
+      else                             { va = a.fecha_vencimiento; vb = b.fecha_vencimiento; }
+      if (va < vb) return dir === 'asc' ? -1 : 1;
+      if (va > vb) return dir === 'asc' ?  1 : -1;
+      return 0;
+    });
+
+    function _thSort(label, colKey) {
+      const active = S.sort.col === colKey;
+      const cls = active ? `sort-${S.sort.dir}` : '';
+      return `<th class="sortable ${cls}" onclick="CF._toggleSort('${colKey}')">${label}<span class="sort-icon"></span></th>`;
+    }
+
     if (datos.length === 0) return _emptyState('No hay registros');
     return `
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Concepto</th><th>Categoría</th><th>Detalle</th><th>Vencimiento</th>
-              <th>Recurrencia</th><th class="td-right">Valor</th>
+              ${_thSort('Concepto','concepto')}
+              ${_thSort('Categoría','categoria')}
+              <th>Detalle</th>
+              ${_thSort('Vencimiento','fecha_vencimiento')}
+              ${_thSort('Recurrencia','recurrencia')}
+              ${_thSort('Valor','valor')}
               <th>Moneda</th><th>Enlace</th><th>Acciones</th>
             </tr>
           </thead>
@@ -491,6 +528,9 @@ const CF = (() => {
   function _rowTransaccion(t) {
     const catNom = t.categoria?.nombre || 'Sin categoría';
     const esIngreso = t.tipo === 'ingreso';
+    const btnRetornar = t.cuenta_origen_id
+      ? `<button class="btn-ret" onclick="CF.retornarMovimiento(${t.id},${t.cuenta_origen_id})" title="Devuelve a CxC/CxP y elimina del libro">↩ Retornar</button>`
+      : '';
     return `
       <tr>
         <td>${fmtDate(t.fecha)}</td>
@@ -501,6 +541,7 @@ const CF = (() => {
         <td class="td-right td-mono ${t.saldoAcum >= 0 ? 'saldo-pos' : 'saldo-neg'}">${fmtCOP(t.saldoAcum)}</td>
         <td>
           <div class="actions">
+            ${btnRetornar}
             <button class="btn-edit" onclick="CF.openModal(${t.id})">Editar</button>
             <button class="btn-del"  onclick="CF.deleteTransaccion(${t.id})">Eliminar</button>
           </div>
@@ -764,6 +805,7 @@ const CF = (() => {
     const payload = {
       perfil,
       categoria_id: catId ? parseInt(catId) : null,
+      cuenta_origen_id: cuentaId || null,
       fecha,
       descripcion: desc,
       valor,
@@ -929,6 +971,18 @@ const CF = (() => {
     }
   }
 
+  async function retornarMovimiento(txId, cuentaId) {
+    if (!confirm('¿Retornar este movimiento a CxC/CxP? Se eliminará del libro contable.')) return;
+    try {
+      await api('PATCH', `/api/transacciones/${txId}/retornar`);
+      toast('Movimiento retornado a CxC/CxP ✓');
+      await Promise.all([loadCuentas(), loadTransacciones()]);
+      render();
+    } catch (e) {
+      toast(e.message, 'err');
+    }
+  }
+
   // ----------------------------------------------------------
   // NOTIFICACIONES
   // ----------------------------------------------------------
@@ -987,16 +1041,21 @@ const CF = (() => {
     });
     if (!cats.length) return '<span style="color:var(--text-muted);font-size:13px">Sin categorías para este contexto.</span>';
 
-    const tipoLabel = { cxc: 'CxC', cxp: 'CxP', ambas: '↔' };
-    const tipoCls   = { cxc: 'cat-badge-cxc', cxp: 'cat-badge-cxp', ambas: 'cat-badge-ambas' };
+    function _tipoBadge(tipo) {
+      if (tipo === 'ambas') return `<span class="cat-badge-cxc">CxC</span><span class="cat-badge-cxp">CxP</span>`;
+      if (tipo === 'cxc')   return `<span class="cat-badge-cxc">CxC</span>`;
+      if (tipo === 'cxp')   return `<span class="cat-badge-cxp">CxP</span>`;
+      return `<span class="cat-badge-ambas">↔</span>`;
+    }
 
     return cats.map(c => {
-      const nombreEsc  = esc(c.nombre).replace(/'/g, '&#39;');
+      const nombreEsc = esc(c.nombre).replace(/'/g, '&#39;');
       return `
         <div class="cat-chip cat-chip-mgr" id="cat-mgr-${c.id}"
              onclick="CF._iniciarRenameCat(${c.id},'${nombreEsc}','${c.tipo}','${c.perfil}')"
              title="Clic para editar">
-          ${esc(c.nombre)}<span class="${tipoCls[c.tipo] || 'cat-badge-ambas'}">${tipoLabel[c.tipo] || '↔'}</span>
+          ${esc(c.nombre)} ${_tipoBadge(c.tipo)}
+          ${c.es_predefinida ? '' : `<span class="cat-badge-del" onclick="event.stopPropagation();CF._eliminarCat(${c.id},'${nombreEsc}')" title="Eliminar">✕</span>`}
         </div>`;
     }).join('');
   }
@@ -1079,6 +1138,18 @@ const CF = (() => {
     if (inp) { inp.focus(); inp.select(); }
   }
 
+  async function _eliminarCat(id, nombre) {
+    if (!confirm(`¿Eliminar la categoría "${nombre}"?`)) return;
+    try {
+      await api('DELETE', `/api/categorias/${id}`);
+      toast('Categoría eliminada');
+      await loadCategorias();
+      _renderFormCategorias();
+    } catch (e) {
+      toast(e.message, 'err');
+    }
+  }
+
   async function _guardarRenameCat(id) {
     const nombre = document.getElementById(`cat-rename-${id}`)?.value.trim();
     const tipo   = document.getElementById(`cat-edit-tipo-${id}`)?.value   || 'ambas';
@@ -1147,14 +1218,15 @@ const CF = (() => {
     // Login form
     document.getElementById('login-form').addEventListener('submit', async e => {
       e.preventDefault();
-      const pw = document.getElementById('password-input').value;
+      const pw   = document.getElementById('password-input').value;
+      const totp = document.getElementById('totp-input')?.value || '';
       const errEl = document.getElementById('login-error');
       errEl.classList.add('hidden');
       try {
         const r = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pw }),
+          body: JSON.stringify({ password: pw, totp_token: totp }),
         });
         if (!r.ok) { errEl.classList.remove('hidden'); return; }
         const data = await r.json();
@@ -1180,6 +1252,7 @@ const CF = (() => {
     registrarMovimiento, saveRegistroMovimiento,
     openCategoriasModal, _renderFormCategorias,
     _iniciarRenameCat, _guardarRenameCat, _setCatTabFiltro,
+    _eliminarCat, retornarMovimiento, _toggleSort,
   };
 
 })();

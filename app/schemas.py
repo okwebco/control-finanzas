@@ -7,6 +7,7 @@ from datetime import date, datetime
 
 class LoginRequest(BaseModel):
     password: str
+    totp_token: str = ""
 
 class TokenResponse(BaseModel):
     token: str
@@ -66,6 +67,7 @@ class CuentaResponse(CuentaBase):
 class TransaccionBase(BaseModel):
     perfil: str
     categoria_id: Optional[int] = None
+    cuenta_origen_id: Optional[int] = None   # ID de la Cuenta que originó este movimiento
     fecha: date
     descripcion: str
     valor: float

@@ -103,3 +103,20 @@ async def eliminar(id: int, db: Session = Depends(get_db), _=Depends(get_current
     db.delete(db_t)
     db.commit()
     return {"ok": True}
+
+
+@router.patch("/{id}/retornar")
+async def retornar(id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    """Elimina la transacción y desregistra la cuenta de origen si aplica."""
+    from app.models import Cuenta
+    db_t = db.query(Transaccion).filter(Transaccion.id == id).first()
+    if not db_t:
+        raise HTTPException(status_code=404, detail="No encontrada")
+    cuenta_id = db_t.cuenta_origen_id
+    db.delete(db_t)
+    if cuenta_id:
+        db_c = db.query(Cuenta).filter(Cuenta.id == cuenta_id).first()
+        if db_c:
+            db_c.registrado = False
+    db.commit()
+    return {"ok": True, "cuenta_id": cuenta_id}

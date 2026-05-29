@@ -76,7 +76,8 @@ async def notificar_vencimiento(cuenta, dias: int):
         f"📌 {cuenta.concepto}\n"
         f"💰 {valor_fmt}\n"
         f"📅 {fecha_fmt}\n"
-        f"{urgencia}"
+        f"{urgencia}\n"
+        f"https://finanzas.jhonvelez.com"
     )
 
     await send_whatsapp(phone, message)

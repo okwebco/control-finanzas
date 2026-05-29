@@ -53,6 +53,7 @@ class Transaccion(Base):
     categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=True)
     fecha = Column(Date, nullable=False)
     año = Column(Integer, nullable=False)
+    cuenta_origen_id = Column(Integer, ForeignKey("cuentas.id"), nullable=True)
     descripcion = Column(String(500), nullable=False)
     valor = Column(Float, nullable=False)
     tipo = Column(String(10), nullable=False)           # ingreso | egreso

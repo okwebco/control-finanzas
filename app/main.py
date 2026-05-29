@@ -50,6 +50,12 @@ def migrate_db():
             print("[DB] Migración: columna tipo agregada a categorias")
         except Exception:
             pass
+        try:
+            conn.execute(text("ALTER TABLE transacciones ADD COLUMN cuenta_origen_id INTEGER REFERENCES cuentas(id)"))
+            conn.commit()
+            print("[DB] Migración: columna cuenta_origen_id agregada a transacciones")
+        except Exception:
+            pass
 
 
 def seed_categorias():

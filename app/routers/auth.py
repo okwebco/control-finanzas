@@ -3,6 +3,7 @@ from app.schemas import LoginRequest, TokenResponse
 from datetime import datetime, timedelta
 from pathlib import Path
 import os
+import pyotp
 from jose import jwt
 from dotenv import dotenv_values
 
@@ -27,6 +28,11 @@ def _app_password() -> str:
     return v.strip()
 
 
+def _totp_secret() -> str:
+    v = _env().get("TOTP_SECRET") or os.getenv("TOTP_SECRET", "")
+    return v.strip()
+
+
 def create_token() -> str:
     expire = datetime.utcnow() + timedelta(days=30)
     return jwt.encode({"sub": "admin", "exp": expire}, _secret_key(), algorithm=ALGORITHM)
@@ -42,7 +48,17 @@ def verify_token(token: str) -> bool:
 
 @router.post("/login", response_model=TokenResponse)
 async def login(request: LoginRequest):
-    expected = _app_password()
-    if request.password != expected:
+    # 1. Verificar contraseña
+    if request.password.strip() != _app_password():
         raise HTTPException(status_code=401, detail="Contraseña incorrecta")
+
+    # 2. Verificar 2FA si está configurado
+    secret = _totp_secret()
+    if secret:
+        if not request.totp_token or not request.totp_token.strip():
+            raise HTTPException(status_code=401, detail="Código 2FA requerido")
+        totp = pyotp.TOTP(secret)
+        if not totp.verify(request.totp_token.strip(), valid_window=1):
+            raise HTTPException(status_code=401, detail="Código 2FA incorrecto")
+
     return TokenResponse(token=create_token())

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Control de finanzas personales y empresariales</title>
-  <link rel="stylesheet" href="/static/css/app.css?v=15">
+  <link rel="stylesheet" href="/static/css/app.css?v=16">
 </head>
 <body>
 
@@ -16,8 +16,10 @@
     <div class="login-subtitle">Ok Web SAS · Jhon H. Vélez</div>
     <form id="login-form">
       <input type="password" id="password-input" placeholder="Contraseña" autocomplete="current-password">
+      <input type="text" id="totp-input" placeholder="Código 2FA (Google Authenticator)"
+             inputmode="numeric" maxlength="6" autocomplete="one-time-code">
       <button type="submit" class="btn-primary">Ingresar</button>
-      <div id="login-error" class="login-error hidden">Contraseña incorrecta. Intenta de nuevo.</div>
+      <div id="login-error" class="login-error hidden">Contraseña o código 2FA incorrecto.</div>
     </form>
   </div>
 </div>
@@ -57,6 +59,9 @@
   <!-- Contenido -->
   <main id="main-content"></main>
 
+  <!-- Footer -->
+  <footer class="app-footer">Control de finanzas | Crea Ok Web ® | 2026</footer>
+
 </div>
 
 <!-- Modal -->
@@ -73,6 +78,6 @@
 <!-- Toast -->
 <div id="toast" class="hidden"></div>
 
-<script src="/static/js/app.js?v=15"></script>
+<script src="/static/js/app.js?v=16"></script>
 </body>
 </html>

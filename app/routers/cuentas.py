@@ -101,6 +101,17 @@ async def marcar_registrado(id: int, db: Session = Depends(get_db), _=Depends(ge
     return db_c
 
 
+@router.patch("/{id}/desregistrar", response_model=CuentaResponse)
+async def desmarcar_registrado(id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    db_c = db.query(Cuenta).filter(Cuenta.id == id).first()
+    if not db_c:
+        raise HTTPException(status_code=404, detail="No encontrada")
+    db_c.registrado = False
+    db.commit()
+    db.refresh(db_c)
+    return db_c
+
+
 @router.delete("/{id}")
 async def eliminar(id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
     db_c = db.query(Cuenta).filter(Cuenta.id == id).first()

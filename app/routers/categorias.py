@@ -55,8 +55,6 @@ async def eliminar(id: int, db: Session = Depends(get_db), _=Depends(get_current
     cat = db.query(Categoria).filter(Categoria.id == id).first()
     if not cat:
         raise HTTPException(status_code=404, detail="No encontrada")
-    if cat.es_predefinida:
-        raise HTTPException(status_code=400, detail="No se pueden eliminar categorías predefinidas")
     db.delete(cat)
     db.commit()
     return {"ok": True}
