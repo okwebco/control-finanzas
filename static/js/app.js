@@ -358,7 +358,12 @@ const CF = (() => {
       `<option value="${c.id}" ${S.filtros.cat===String(c.id)?'selected':''}>${esc(c.nombre)}</option>`
     ).join('');
 
-    // Saldo acumulado (sobre datos filtrados)
+    // Totales del año (todas las transacciones del perfil+año, sin filtro)
+    const ingresos = S.transacciones.filter(t => t.tipo === 'ingreso').reduce((s, t) => s + t.valor, 0);
+    const egresos  = S.transacciones.filter(t => t.tipo === 'egreso').reduce((s, t) => s + t.valor, 0);
+    const saldo    = ingresos - egresos;
+
+    // Saldo acumulado (sobre datos filtrados, fila a fila)
     let saldoAcum = 0;
     const datosConSaldo = datos.map(t => {
       saldoAcum += t.tipo === 'ingreso' ? t.valor : -t.valor;
