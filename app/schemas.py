@@ -52,6 +52,7 @@ class CuentaResponse(CuentaBase):
     notificado_30: bool
     notificado_8: bool
     notificado_1: bool
+    registrado: bool = False
     created_at: datetime
     categoria: Optional[CategoriaResponse] = None
 

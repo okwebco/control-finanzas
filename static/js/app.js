@@ -321,9 +321,11 @@ const CF = (() => {
       : '<span class="td-muted">—</span>';
 
     const catNombre = c.categoria?.nombre || '—';
-    const btnReg = c.tipo === 'cxc'
-      ? `<button class="btn-reg btn-reg-cxc" onclick="CF.registrarMovimiento(${c.id})">✓ Cobrar</button>`
-      : `<button class="btn-reg btn-reg-cxp" onclick="CF.registrarMovimiento(${c.id})">✓ Pagar</button>`;
+    const btnReg = c.registrado
+      ? `<button class="btn-reg btn-reg-done" disabled>✓ ${c.tipo === 'cxc' ? 'Cobrado' : 'Pagado'}</button>`
+      : c.tipo === 'cxc'
+        ? `<button class="btn-reg btn-reg-cxc" onclick="CF.registrarMovimiento(${c.id})">✓ Cobrar</button>`
+        : `<button class="btn-reg btn-reg-cxp" onclick="CF.registrarMovimiento(${c.id})">✓ Pagar</button>`;
     return `
       <tr class="${rowCls}">
         <td><strong>${esc(c.concepto)}</strong></td>
@@ -685,14 +687,14 @@ const CF = (() => {
       </div>
       <div class="form-actions">
         <button class="btn-cancel" onclick="CF.closeModal()">Cancelar</button>
-        <button class="btn-save ${addClass}" onclick="CF.saveRegistroMovimiento('${cuenta.perfil}','${tipoTx}')">
+        <button class="btn-save ${addClass}" onclick="CF.saveRegistroMovimiento('${cuenta.perfil}','${tipoTx}',${cuenta.id})">
           Registrar ${tipoLabel}
         </button>
       </div>
     `;
   }
 
-  async function saveRegistroMovimiento(perfil, tipoTx) {
+  async function saveRegistroMovimiento(perfil, tipoTx, cuentaId) {
     const fecha = document.getElementById('f-fecha').value;
     const valor = parseFloat(document.getElementById('f-valor').value);
     const desc  = document.getElementById('f-desc').value.trim();
@@ -714,9 +716,10 @@ const CF = (() => {
 
     try {
       await api('POST', '/api/transacciones', payload);
+      if (cuentaId) await api('PATCH', `/api/cuentas/${cuentaId}/registrar`);
       toast(`${tipoTx === 'ingreso' ? 'Cobro' : 'Pago'} registrado en el libro contable ✓`);
       closeModal();
-      await loadTransacciones();
+      await Promise.all([loadCuentas(), loadTransacciones()]);
       render();
     } catch (e) {
       toast(e.message, 'err');

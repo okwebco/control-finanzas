@@ -33,6 +33,7 @@ class Cuenta(Base):
     notificado_30 = Column(Boolean, default=False)
     notificado_8 = Column(Boolean, default=False)
     notificado_1 = Column(Boolean, default=False)
+    registrado = Column(Boolean, default=False)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

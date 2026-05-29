@@ -337,6 +337,8 @@ tr.libro-totales td {
 .btn-reg-cxc:hover { background: #bbf7d0; }
 .btn-reg-cxp { background: #fee2e2; color: var(--cxp); }
 .btn-reg-cxp:hover { background: #fecaca; }
+.btn-reg-done { background: #f1f5f9; color: #94a3b8; cursor: default; opacity: .75; }
+.btn-reg-done:hover { background: #f1f5f9; }
 
 /* Info box del formulario de registro */
 .reg-info-box {

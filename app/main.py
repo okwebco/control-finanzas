@@ -32,6 +32,12 @@ def migrate_db():
             print("[DB] Migración: columna categoria_id agregada a cuentas")
         except Exception:
             pass  # Ya existe — ignorar
+        try:
+            conn.execute(text("ALTER TABLE cuentas ADD COLUMN registrado BOOLEAN DEFAULT 0"))
+            conn.commit()
+            print("[DB] Migración: columna registrado agregada a cuentas")
+        except Exception:
+            pass  # Ya existe — ignorar
 
 
 def seed_categorias():
