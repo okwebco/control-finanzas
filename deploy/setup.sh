@@ -6,7 +6,7 @@
 # =============================================================
 set -e
 
-PROJECT_ID="control-finanzas"
+PROJECT_ID="control-finanzas-ow"
 REGION="us-central1"
 SERVICE="control-finanzas"
 AR_REPO="control-finanzas"
