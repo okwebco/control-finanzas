@@ -394,19 +394,30 @@ const CF = (() => {
         </select>
         <button class="btn-clear-filters" onclick="CF._limpiarFiltros()">✕ Limpiar</button>
       </div>
-      ${datos.length === 0 ? _emptyState('No hay transacciones para este año y perfil') : `
+      ${datos.length === 0 ? _emptyState('No hay transacciones. Usa "+ Agregar" para registrar tu primer ingreso o egreso.') : `
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>Fecha</th><th>Categoría</th><th>Descripción</th>
-                <th>Tipo</th><th class="td-right">Valor</th><th class="td-right">Saldo</th>
+                <th class="td-right col-ingreso">Ingreso</th>
+                <th class="td-right col-egreso">Egreso</th>
+                <th class="td-right">Saldo</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               ${datosConSaldo.map(t => _rowTransaccion(t)).join('')}
             </tbody>
+            <tfoot>
+              <tr class="libro-totales">
+                <td colspan="3"><strong>Totales ${S.año}</strong></td>
+                <td class="td-right td-mono col-ingreso"><strong>${fmtCOP(ingresos)}</strong></td>
+                <td class="td-right td-mono col-egreso"><strong>${fmtCOP(egresos)}</strong></td>
+                <td class="td-right td-mono ${saldo >= 0 ? 'saldo-pos' : 'saldo-neg'}"><strong>${fmtCOP(saldo)}</strong></td>
+                <td></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       `}
@@ -427,13 +438,14 @@ const CF = (() => {
 
   function _rowTransaccion(t) {
     const catNom = t.categoria?.nombre || 'Sin categoría';
+    const esIngreso = t.tipo === 'ingreso';
     return `
       <tr>
         <td>${fmtDate(t.fecha)}</td>
-        <td>${esc(catNom)}</td>
+        <td class="td-muted">${esc(catNom)}</td>
         <td>${esc(t.descripcion)}</td>
-        <td><span class="badge badge-${t.tipo}">${t.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}</span></td>
-        <td class="td-right td-mono">${fmtCOP(t.valor)}</td>
+        <td class="td-right td-mono col-ingreso">${esIngreso ? fmtCOP(t.valor) : ''}</td>
+        <td class="td-right td-mono col-egreso">${!esIngreso ? fmtCOP(t.valor) : ''}</td>
         <td class="td-right td-mono ${t.saldoAcum >= 0 ? 'saldo-pos' : 'saldo-neg'}">${fmtCOP(t.saldoAcum)}</td>
         <td>
           <div class="actions">

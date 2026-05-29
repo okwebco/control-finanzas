@@ -248,6 +248,14 @@ tr.row-warn-30 td:first-child { border-left: 3px solid var(--warn-30); }
 .saldo-pos { color: var(--ingreso); font-weight: 600; }
 .saldo-neg { color: var(--egreso);  font-weight: 600; }
 
+/* Columnas de tres bandas del libro contable */
+.col-ingreso { color: var(--ingreso); }
+.col-egreso  { color: var(--egreso); }
+tfoot.libro-totales td, tr.libro-totales td {
+  background: #f8fafc; border-top: 2px solid var(--border);
+  padding: 10px 14px; font-size: 13px;
+}
+
 /* ===== Modal ===== */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.45);
