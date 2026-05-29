@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./control_finanzas.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./control_finanzas.db").strip()
 
 # SQLite requiere check_same_thread=False; PostgreSQL no acepta ese parámetro
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
