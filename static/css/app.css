@@ -5,8 +5,8 @@
   --border: #e2e8f0;
   --text: #1e293b;
   --text-muted: #64748b;
-  --personal: #2563eb;
-  --laboral: #7c3aed;
+  --personal: #1e3a5f;   /* jhonvelez.com — azul marino profundo */
+  --laboral:  #0057a8;   /* Ok Web SAS — azul corporativo */
   --cxc: #16a34a;
   --cxp: #dc2626;
   --ingreso: #16a34a;
@@ -60,7 +60,7 @@ input, select, textarea { font: inherit; }
   display: flex; align-items: center; padding: 0 24px; gap: 16px;
   box-shadow: var(--shadow);
 }
-.header-brand { font-weight: 700; font-size: 16px; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.header-brand { font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px; max-width: 280px; line-height: 1.3; }
 .header-center { flex: 1; display: flex; justify-content: center; }
 .header-right { display: flex; align-items: center; gap: 10px; }
 
@@ -114,10 +114,12 @@ input, select, textarea { font: inherit; }
 .balance-card.bc-cxp   { border-color: var(--cxp); }
 .balance-card.bc-libro { border-color: var(--personal); }
 .balance-card.bc-libro.laboral { border-color: var(--laboral); }
-.bc-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+.bc-label { font-size: 13px; font-weight: 800; color: var(--text-muted); letter-spacing: .01em; }
 .bc-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
-.bc-value.green { color: var(--cxc); }
-.bc-value.red   { color: var(--cxp); }
+.bc-value.blue-cxc  { color: #1e6fca; }       /* CxC — azul */
+.bc-value.orange-cxp { color: #ea580c; }       /* CxP — naranja */
+.bc-value.green { color: var(--ingreso); }     /* Saldo positivo — verde */
+.bc-value.red   { color: var(--egreso); }      /* Saldo negativo — rojo */
 .bc-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
 /* ===== Tabs ===== */

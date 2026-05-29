@@ -181,7 +181,7 @@ const CF = (() => {
     if (!msel.options.length) {
       const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                      'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-      msel.add(new Option('Todos', 0));
+      msel.add(new Option('Meses', 0));
       meses.forEach((m, i) => msel.add(new Option(m, i + 1)));
     }
     msel.value = S.mes;
@@ -227,12 +227,12 @@ const CF = (() => {
     document.getElementById('balance-row').innerHTML = `
       <div class="balance-card bc-cxc">
         <div class="bc-label">Por cobrar</div>
-        <div class="bc-value green">${cxcItems.length ? subCxc : '—'}</div>
+        <div class="bc-value blue-cxc">${cxcItems.length ? subCxc : '—'}</div>
         <div class="bc-sub">${cxcItems.length} registro(s)</div>
       </div>
       <div class="balance-card bc-cxp">
         <div class="bc-label">Por pagar</div>
-        <div class="bc-value red">${cxpItems.length ? subCxp : '—'}</div>
+        <div class="bc-value orange-cxp">${cxpItems.length ? subCxp : '—'}</div>
         <div class="bc-sub">${cxpItems.length} registro(s)</div>
       </div>
       <div class="balance-card bc-libro ${S.perfil}">
@@ -385,7 +385,10 @@ const CF = (() => {
     const datos = txBase.filter(t => {
       const f = S.filtros;
       if (f.tipo_tx && t.tipo !== f.tipo_tx) return false;
-      if (f.cat && String(t.categoria_id) !== String(f.cat)) return false;
+      if (f.cat) {
+        const catId = t.categoria_id ?? t.categoria?.id;
+        if (String(catId) !== String(f.cat)) return false;
+      }
       if (f.desc && !t.descripcion.toLowerCase().includes(f.desc.toLowerCase())) return false;
       return true;
     });
@@ -454,9 +457,12 @@ const CF = (() => {
 
   function _renderLibro() {
     const addClass = S.perfil === 'laboral' ? 'laboral-mode' : '';
-    const catOpts = S.categorias.map(c =>
-      `<option value="${c.id}" ${S.filtros.cat===String(c.id)?'selected':''}>${esc(c.nombre)}</option>`
-    ).join('');
+    // Solo mostrar categorías que tengan al menos una transacción (evita opciones vacías)
+    const txCatIds = new Set(S.transacciones.map(t => String(t.categoria_id ?? t.categoria?.id)));
+    const catOpts = S.categorias
+      .filter(c => txCatIds.has(String(c.id)))
+      .map(c => `<option value="${c.id}" ${S.filtros.cat===String(c.id)?'selected':''}>${esc(c.nombre)}</option>`)
+      .join('');
 
     document.getElementById('main-content').innerHTML = `
       <div class="toolbar">
