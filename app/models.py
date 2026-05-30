@@ -28,6 +28,7 @@ class Cuenta(Base):
     fecha_vencimiento = Column(Date, nullable=False)
     concepto = Column(String(200), nullable=False)
     detalle = Column(Text, nullable=True)
+    telefono = Column(String(30), nullable=True)
     url = Column(String(500), nullable=True)
     recurrencia = Column(String(20), nullable=True)    # mensual | anual | unica
     valor = Column(Float, nullable=False)

@@ -38,6 +38,7 @@ class CuentaBase(BaseModel):
     fecha_vencimiento: date
     concepto: str
     detalle: Optional[str] = None
+    telefono: Optional[str] = None
     url: Optional[str] = None
     recurrencia: Optional[str] = None
     valor: float

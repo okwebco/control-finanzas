@@ -34,6 +34,8 @@ MIGRACIONES = [
      "columna tipo agregada a categorias"),
     ("ALTER TABLE transacciones ADD COLUMN cuenta_origen_id INTEGER REFERENCES cuentas(id)",
      "columna cuenta_origen_id agregada a transacciones"),
+    ("ALTER TABLE cuentas ADD COLUMN telefono VARCHAR(30)",
+     "columna telefono agregada a cuentas"),
 ]
 
 

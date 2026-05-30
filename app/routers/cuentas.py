@@ -4,7 +4,7 @@ from typing import Optional, List
 from datetime import date, timedelta
 import calendar
 from app.database import get_db
-from app.models import Cuenta
+from app.models import Cuenta, Transaccion
 from app.schemas import CuentaCreate, CuentaUpdate, CuentaResponse
 from app.dependencies import get_current_user
 
@@ -122,6 +122,7 @@ async def marcar_registrado(id: int, db: Session = Depends(get_db), _=Depends(ge
             tipo=db_c.tipo,
             concepto=db_c.concepto,
             detalle=db_c.detalle,
+            telefono=db_c.telefono,
             url=db_c.url,
             recurrencia=db_c.recurrencia,
             valor=db_c.valor,
@@ -155,6 +156,8 @@ async def eliminar(id: int, db: Session = Depends(get_db), _=Depends(get_current
     db_c = db.query(Cuenta).filter(Cuenta.id == id).first()
     if not db_c:
         raise HTTPException(status_code=404, detail="No encontrada")
+    # Desvincular transacciones que referencian esta cuenta antes de eliminar
+    db.query(Transaccion).filter(Transaccion.cuenta_origen_id == id).update({"cuenta_origen_id": None})
     db.delete(db_c)
     db.commit()
     return {"ok": True}
