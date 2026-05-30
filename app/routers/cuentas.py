@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from datetime import date, timedelta
+import calendar
 from app.database import get_db
 from app.models import Cuenta
 from app.schemas import CuentaCreate, CuentaUpdate, CuentaResponse
@@ -90,6 +91,20 @@ async def actualizar(
     return db_c
 
 
+def _siguiente_fecha(fecha: date, recurrencia: str) -> date:
+    """Avanza la fecha 1 mes o 1 año sin depender de librerías externas."""
+    if recurrencia == 'mensual':
+        m = fecha.month + 1
+        y = fecha.year + (1 if m > 12 else 0)
+        m = m if m <= 12 else 1
+        dia = min(fecha.day, calendar.monthrange(y, m)[1])
+        return date(y, m, dia)
+    else:  # anual
+        y = fecha.year + 1
+        dia = min(fecha.day, calendar.monthrange(y, fecha.month)[1])
+        return date(y, fecha.month, dia)
+
+
 @router.patch("/{id}/registrar", response_model=CuentaResponse)
 async def marcar_registrado(id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
     db_c = db.query(Cuenta).filter(Cuenta.id == id).first()
@@ -98,6 +113,29 @@ async def marcar_registrado(id: int, db: Session = Depends(get_db), _=Depends(ge
     db_c.registrado = True
     db.commit()
     db.refresh(db_c)
+
+    # Auto-renovar si es recurrente mensual o anual
+    if db_c.recurrencia in ('mensual', 'anual'):
+        nueva_fecha = _siguiente_fecha(db_c.fecha_vencimiento, db_c.recurrencia)
+        nueva = Cuenta(
+            perfil=db_c.perfil,
+            tipo=db_c.tipo,
+            concepto=db_c.concepto,
+            detalle=db_c.detalle,
+            url=db_c.url,
+            recurrencia=db_c.recurrencia,
+            valor=db_c.valor,
+            moneda=db_c.moneda,
+            categoria_id=db_c.categoria_id,
+            fecha_vencimiento=nueva_fecha,
+            registrado=False,
+            notificado_30=False,
+            notificado_8=False,
+            notificado_1=False,
+        )
+        db.add(nueva)
+        db.commit()
+
     return db_c
 
 

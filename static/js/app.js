@@ -203,25 +203,57 @@ const CF = (() => {
   }
 
   function _renderAlertas() {
-    const banner = document.getElementById('alerts-banner');
-    if (!S.alertas.length) { banner.classList.add('hidden'); return; }
-    banner.classList.remove('hidden');
+    // El banner horizontal ya no se usa — solo actualizamos el badge de la campana
+    document.getElementById('alerts-banner')?.classList.add('hidden');
+    const badge = document.getElementById('alert-count');
+    if (!badge) return;
+    const n = S.alertas.length;
+    if (n > 0) {
+      badge.textContent = n > 99 ? '99+' : n;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
 
-    const cls = a => a.vencida ? 'alert-vencida' : a.dias === 1 ? 'alert-1' : a.dias <= 8 ? 'alert-8' : 'alert-30';
-    const lbl = a => {
-      if (a.vencida) return `Vencida hace ${Math.abs(a.dias)} día(s)`;
-      return `${a.dias === 1 ? 'Mañana' : `En ${a.dias} días`}`;
-    };
-    const tipo = a => a.tipo === 'cxc' ? 'Cobrar' : 'Pagar';
-    const perfil = a => a.perfil === 'personal' ? '👤' : '🏢';
+  function _alertLbl(a) {
+    if (a.vencida) return `Vencida hace ${Math.abs(a.dias)} día(s)`;
+    if (a.dias === 1) return 'Mañana vence';
+    return `Vence en ${a.dias} días`;
+  }
 
-    banner.innerHTML = `
-      <span id="alerts-title">⚠️ Alertas de vencimiento:</span>
-      ${S.alertas.map(a => `
-        <span class="alert-chip ${cls(a)}" onclick="CF.setTab('${a.tipo}')">
-          ${perfil(a)} ${esc(a.concepto)} · ${tipo(a)} · ${lbl(a)}
-        </span>
-      `).join('')}
+  function _alertCls(a) {
+    return a.vencida ? 'vencida' : a.dias <= 1 ? '1' : a.dias <= 8 ? '8' : '30';
+  }
+
+  function openAlertasPanel() {
+    if (!S.alertas.length) { toast('No hay alertas pendientes'); return; }
+    const overlay = document.getElementById('modal-overlay');
+    overlay.classList.remove('hidden');
+    overlay.onclick = e => { if (e.target === overlay) closeModal(); };
+    document.getElementById('modal-title').textContent = `Alertas de vencimiento (${S.alertas.length})`;
+    document.getElementById('modal-body').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:4px">
+        ${S.alertas.map(a => `
+          <div class="alert-item alert-item-${_alertCls(a)}"
+               onclick="CF.closeModal();CF.setPerfil('${a.perfil}');CF.setTab('${a.tipo}')"
+               title="Ir a ${a.tipo === 'cxc' ? 'CxC' : 'CxP'}">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+              <div>
+                <span style="font-weight:700">${a.perfil === 'personal' ? '👤' : '🏢'} ${esc(a.concepto)}</span>
+                <span style="margin-left:8px;font-size:12px;color:var(--text-muted)">${a.tipo === 'cxc' ? 'Por cobrar' : 'Por pagar'}</span>
+              </div>
+              <div style="text-align:right;font-size:13px">
+                <div style="font-weight:700">${fmtCOP(a.valor)}</div>
+                <div style="color:var(--text-muted)">${_alertLbl(a)}</div>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="CF.closeModal()">Cerrar</button>
+      </div>
     `;
   }
 
@@ -584,12 +616,12 @@ const CF = (() => {
     const addClass = S.perfil === 'laboral' ? 'laboral-mode' : '';
     const v = f => c ? (c[f] || '') : '';
 
-    // Solo mostrar categorías asignadas: excluir predefinidas no configuradas (ambos+ambas = default intacto)
+    // Solo mostrar categorías configuradas: tipo=ambas aparece en CxC y CxP sin importar perfil
     const catsFiltradas = S.categorias.filter(cat => {
-      if (cat.perfil !== S.perfil && cat.perfil !== 'ambos') return false;
-      if (cat.tipo !== S.tab && cat.tipo !== 'ambas') return false;
       if (cat.es_predefinida && cat.perfil === 'ambos' && cat.tipo === 'ambas') return false;
-      return true;
+      const tipoOk  = cat.tipo === S.tab || cat.tipo === 'ambas';
+      const perfilOk = cat.perfil === S.perfil || cat.perfil === 'ambos' || cat.tipo === 'ambas';
+      return tipoOk && perfilOk;
     });
     const catChipsCuenta = catsFiltradas.map(cat => `
       <div class="cat-chip ${String(v('categoria_id')) === String(cat.id) ? 'cat-chip-sel' : ''}"
@@ -1253,7 +1285,7 @@ const CF = (() => {
     registrarMovimiento, saveRegistroMovimiento,
     openCategoriasModal, _renderFormCategorias,
     _iniciarRenameCat, _guardarRenameCat, _setCatTabFiltro,
-    _eliminarCat, retornarMovimiento, _toggleSort, togglePw,
+    _eliminarCat, retornarMovimiento, _toggleSort, togglePw, openAlertasPanel,
   };
 
 })();
