@@ -231,30 +231,73 @@ const CF = (() => {
     const overlay = document.getElementById('modal-overlay');
     overlay.classList.remove('hidden');
     overlay.onclick = e => { if (e.target === overlay) closeModal(); };
+    _renderAlertasBody('cxc');
+  }
+
+  function _renderAlertasBody(tipoTab) {
+    const cobro = S.alertas.filter(a => a.tipo === 'cxc');
+    const pago  = S.alertas.filter(a => a.tipo === 'cxp');
+    const lista = tipoTab === 'cxc' ? cobro : pago;
     document.getElementById('modal-title').textContent = `Alertas de vencimiento (${S.alertas.length})`;
     document.getElementById('modal-body').innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:4px">
-        ${S.alertas.map(a => `
-          <div class="alert-item alert-item-${_alertCls(a)}"
-               onclick="CF.closeModal();CF.setPerfil('${a.perfil}');CF.setTab('${a.tipo}')"
-               title="Ir a ${a.tipo === 'cxc' ? 'CxC' : 'CxP'}">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-              <div>
-                <span style="font-weight:700">${a.perfil === 'personal' ? '👤' : '🏢'} ${esc(a.concepto)}</span>
-                <span style="margin-left:8px;font-size:12px;color:var(--text-muted)">${a.tipo === 'cxc' ? 'Por cobrar' : 'Por pagar'}</span>
-              </div>
-              <div style="text-align:right;font-size:13px">
-                <div style="font-weight:700">${fmtCOP(a.valor)}</div>
-                <div style="color:var(--text-muted)">${_alertLbl(a)}</div>
+      <div class="alertas-tabs">
+        <button class="alerta-tab-btn ${tipoTab==='cxc'?'active':''}" onclick="CF._renderAlertasBody('cxc')">
+          Alertas de cobro ${cobro.length ? `<span class="alert-badge-sm">${cobro.length}</span>` : ''}
+        </button>
+        <button class="alerta-tab-btn ${tipoTab==='cxp'?'active':''}" onclick="CF._renderAlertasBody('cxp')">
+          Alertas de pago ${pago.length ? `<span class="alert-badge-sm">${pago.length}</span>` : ''}
+        </button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:12px 0 4px">
+        ${lista.length === 0
+          ? '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:16px 0">Sin alertas en esta categoría.</p>'
+          : lista.map(a => `
+            <div class="alert-item alert-item-${_alertCls(a)}" style="position:relative">
+              <button class="alert-item-dismiss" onclick="event.stopPropagation();CF.dismissAlerta(${a.id},'${tipoTab}')" title="Descartar">✕</button>
+              <div onclick="CF.irAAlerta(${a.id},'${a.perfil}','${a.tipo}')" style="cursor:pointer">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+                  <div>
+                    <span style="font-weight:700">${a.perfil === 'personal' ? '👤' : '🏢'} ${esc(a.concepto)}</span>
+                  </div>
+                  <div style="text-align:right;font-size:13px">
+                    <div style="font-weight:700">${fmtCOP(a.valor)}</div>
+                    <div style="color:var(--text-muted)">${_alertLbl(a)}</div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        `).join('')}
+          `).join('')
+        }
       </div>
       <div class="form-actions">
         <button class="btn-cancel" onclick="CF.closeModal()">Cerrar</button>
       </div>
     `;
+  }
+
+  function irAAlerta(id, perfil, tipo) {
+    S.alertas = S.alertas.filter(a => a.id !== id);
+    _renderAlertas();
+    closeModal();
+    S.perfil = perfil;
+    localStorage.setItem('cf_perfil', perfil);
+    S.tab = tipo;
+    _resetFiltros();
+    render();
+    setTimeout(() => {
+      const row = document.getElementById(`row-cuenta-${id}`);
+      if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.classList.add('row-highlight');
+        setTimeout(() => row.classList.remove('row-highlight'), 2500);
+      }
+    }, 120);
+  }
+
+  function dismissAlerta(id, tipoTab) {
+    S.alertas = S.alertas.filter(a => a.id !== id);
+    _renderAlertas();
+    _renderAlertasBody(tipoTab);
   }
 
   function _renderBalance() {
@@ -295,6 +338,12 @@ const CF = (() => {
       const active = btn.dataset.tab === S.tab;
       btn.className = 'tab-btn' + (active ? ` active-${S.perfil}` : '');
     });
+    const sub = document.getElementById('tab-subtitle');
+    if (!sub) return;
+    const perfilNombre = PERFILES[S.perfil].nombre;
+    if (S.tab === 'cxc')        sub.textContent = 'Cuentas por cobrar · ' + perfilNombre;
+    else if (S.tab === 'cxp')   sub.textContent = 'Cuentas por pagar · ' + perfilNombre;
+    else                        sub.textContent = 'Libro contable ' + S.año + ' · ' + perfilNombre;
   }
 
   function _renderContent() {
@@ -317,6 +366,10 @@ const CF = (() => {
         if (f.concepto    && !c.concepto.toLowerCase().includes(f.concepto.toLowerCase())) return false;
         if (f.moneda      && c.moneda !== f.moneda) return false;
         if (f.recurrencia && c.recurrencia !== f.recurrencia) return false;
+        if (f.cat) {
+          const catId = c.categoria_id ?? c.categoria?.id;
+          if (String(catId) !== String(f.cat)) return false;
+        }
         // Filtro por año+mes si hay mes activo
         if (S.mes > 0) {
           const d = new Date(c.fecha_vencimiento + 'T00:00:00');
@@ -370,24 +423,24 @@ const CF = (() => {
 
   function _renderCuentas() {
     const tipo = S.tab;
-    const titulo = tipo === 'cxc' ? 'Cuentas por cobrar' : 'Cuentas por pagar';
-    const perfilNombre = PERFILES[S.perfil].nombre;
     const addClass = S.perfil === 'laboral' ? 'laboral-mode' : '';
 
+    const catsDisp = S.categorias.filter(c => {
+      const tipoOk   = c.tipo === tipo || c.tipo === 'ambas';
+      const perfilOk = c.perfil === S.perfil || c.perfil === 'ambos';
+      return tipoOk && perfilOk;
+    });
+    const catOpts = catsDisp.map(c =>
+      `<option value="${c.id}" ${S.filtros.cat===String(c.id)?'selected':''}>${esc(c.nombre)}</option>`
+    ).join('');
+
     document.getElementById('main-content').innerHTML = `
-      <div class="toolbar">
-        <div class="toolbar-title">${titulo} · ${esc(perfilNombre)}</div>
-        <button class="btn-sm btn-notify" onclick="CF.verificarNotificaciones()">🔔 Verificar alertas</button>
-        <button class="btn-sm btn-export" onclick="CF.exportar('cuentas','${tipo}')">⬇ Excel</button>
-        <button class="btn-sm btn-add ${addClass}" onclick="CF.openModal()">+ Agregar</button>
-      </div>
       <div class="filters-row">
         <input id="filter-concepto" class="filter-input" placeholder="Buscar concepto…"
           value="${esc(S.filtros.concepto)}" oninput="CF._setFiltro('concepto', this.value)">
-        <select class="filter-select" onchange="CF._setFiltro('moneda', this.value)">
-          <option value="">Moneda: todas</option>
-          <option value="COP" ${S.filtros.moneda==='COP'?'selected':''}>COP</option>
-          <option value="USD" ${S.filtros.moneda==='USD'?'selected':''}>USD</option>
+        <select class="filter-select" onchange="CF._setFiltro('cat', this.value)">
+          <option value="">Categoría: todas</option>
+          ${catOpts}
         </select>
         <select class="filter-select" onchange="CF._setFiltro('recurrencia', this.value)">
           <option value="">Recurrencia: todas</option>
@@ -395,7 +448,14 @@ const CF = (() => {
           <option value="anual"   ${S.filtros.recurrencia==='anual'?'selected':''}>Anual</option>
           <option value="unica"   ${S.filtros.recurrencia==='unica'?'selected':''}>Única vez</option>
         </select>
+        <select class="filter-select" onchange="CF._setFiltro('moneda', this.value)">
+          <option value="">Moneda: todas</option>
+          <option value="COP" ${S.filtros.moneda==='COP'?'selected':''}>COP</option>
+          <option value="USD" ${S.filtros.moneda==='USD'?'selected':''}>USD</option>
+        </select>
         <button class="btn-clear-filters" onclick="CF._limpiarFiltros()">✕ Limpiar</button>
+        <button class="btn-sm btn-export" onclick="CF.exportar('cuentas','${tipo}')">⬇ Excel</button>
+        <button class="btn-sm btn-add ${addClass}" onclick="CF.openModal()">+ Agregar</button>
       </div>
       <div id="data-area">${_buildCuentasData()}</div>
     `;
@@ -425,7 +485,7 @@ const CF = (() => {
         ? `<button class="btn-reg btn-reg-cxc" onclick="CF.registrarMovimiento(${c.id})">✓ Cobrar</button>`
         : `<button class="btn-reg btn-reg-cxp" onclick="CF.registrarMovimiento(${c.id})">✓ Pagar</button>`;
     return `
-      <tr class="${rowCls}">
+      <tr class="${rowCls}" id="row-cuenta-${c.id}">
         <td><strong>${esc(c.concepto)}</strong></td>
         <td class="td-muted">${esc(catNombre)}</td>
         <td class="td-muted">${esc(c.detalle || '—')}</td>
@@ -537,11 +597,6 @@ const CF = (() => {
       .join('');
 
     document.getElementById('main-content').innerHTML = `
-      <div class="toolbar">
-        <div class="toolbar-title">Libro contable ${S.año} · ${esc(PERFILES[S.perfil].nombre)}</div>
-        <button class="btn-sm btn-export" onclick="CF.exportar('libro')">⬇ Excel</button>
-        <button class="btn-sm btn-add ${addClass}" onclick="CF.openCategoriasModal()">Categorías</button>
-      </div>
       <div class="filters-row">
         <input id="filter-desc" class="filter-input" placeholder="Buscar descripción…"
           value="${esc(S.filtros.desc)}" oninput="CF._setFiltro('desc', this.value)">
@@ -555,6 +610,8 @@ const CF = (() => {
           ${catOpts}
         </select>
         <button class="btn-clear-filters" onclick="CF._limpiarFiltros()">✕ Limpiar</button>
+        <button class="btn-sm btn-export" onclick="CF.exportar('libro')">⬇ Excel</button>
+        <button class="btn-sm btn-add ${addClass}" onclick="CF.openCategoriasModal()">Categorías</button>
       </div>
       <div id="data-area">${_buildLibroData()}</div>
     `;
@@ -618,9 +675,8 @@ const CF = (() => {
 
     // Solo mostrar categorías configuradas: tipo=ambas aparece en CxC y CxP sin importar perfil
     const catsFiltradas = S.categorias.filter(cat => {
-      if (cat.es_predefinida && cat.perfil === 'ambos' && cat.tipo === 'ambas') return false;
-      const tipoOk  = cat.tipo === S.tab || cat.tipo === 'ambas';
-      const perfilOk = cat.perfil === S.perfil || cat.perfil === 'ambos' || cat.tipo === 'ambas';
+      const tipoOk   = cat.tipo === S.tab || cat.tipo === 'ambas';
+      const perfilOk = cat.perfil === S.perfil || cat.perfil === 'ambos';
       return tipoOk && perfilOk;
     });
     const catChipsCuenta = catsFiltradas.map(cat => `
@@ -778,7 +834,6 @@ const CF = (() => {
     const catsFiltReg = S.categorias.filter(c => {
       if (c.perfil !== cuenta.perfil && c.perfil !== 'ambos') return false;
       if (c.tipo !== cuenta.tipo && c.tipo !== 'ambas') return false;
-      if (c.es_predefinida && c.perfil === 'ambos' && c.tipo === 'ambas') return false;
       return true;
     });
     const catChips = catsFiltReg.map(c => `
@@ -1009,8 +1064,27 @@ const CF = (() => {
     try {
       await api('PATCH', `/api/transacciones/${txId}/retornar`);
       toast('Movimiento retornado a CxC/CxP ✓');
-      await Promise.all([loadCuentas(), loadTransacciones()]);
+      await Promise.all([loadCuentas(), loadTransacciones(), loadAlertas()]);
+      // Navegar a la pestaña donde quedó la cuenta
+      if (cuentaId) {
+        const cuenta = S.cuentas.find(c => c.id === cuentaId);
+        if (cuenta) {
+          S.tab = cuenta.tipo;
+          _resetFiltros();
+        }
+      }
       render();
+      // Resaltar la fila si la cuenta fue encontrada
+      if (cuentaId) {
+        setTimeout(() => {
+          const row = document.getElementById(`row-cuenta-${cuentaId}`);
+          if (row) {
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            row.classList.add('row-highlight');
+            setTimeout(() => row.classList.remove('row-highlight'), 2500);
+          }
+        }, 120);
+      }
     } catch (e) {
       toast(e.message, 'err');
     }
@@ -1285,7 +1359,8 @@ const CF = (() => {
     registrarMovimiento, saveRegistroMovimiento,
     openCategoriasModal, _renderFormCategorias,
     _iniciarRenameCat, _guardarRenameCat, _setCatTabFiltro,
-    _eliminarCat, retornarMovimiento, _toggleSort, togglePw, openAlertasPanel,
+    _eliminarCat, retornarMovimiento, _toggleSort, togglePw,
+    openAlertasPanel, _renderAlertasBody, irAAlerta, dismissAlerta,
   };
 
 })();
